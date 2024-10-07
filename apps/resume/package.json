@@ -1,0 +1,35 @@
+{
+  "name": "resume",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "generate-static-files": "node ./scripts/generate-static-files.mjs",
+    "predev": "yarn generate-static-files",
+    "dev": "next dev --port 3001",
+    "prebuild": "yarn generate-static-files",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "lint:fix": "eslint 'src/**/*.{js,jsx,ts,tsx}' --fix",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "cypress": "cypress open",
+    "export": "next build && next export"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.10.6",
+    "@emotion/styled": "^11.10.6",
+    "@nextui-org/react": "^1.0.0-beta.12",
+    "core": "*",
+    "kbar": "^0.1.0-beta.40",
+    "next": "^14.2.3",
+    "next-themes": "^0.2.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "config": "*",
+    "cypress": "^13.5.0",
+    "tsconfig": "*"
+  }
+}

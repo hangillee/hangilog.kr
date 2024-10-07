@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://comet-land-blog.vercel.app</loc>
+  </url>
+
+  <url>
+    <loc>https://comet-land-blog.vercel.app/bar</loc>
+  </url>
+  <url>
+    <loc>https://comet-land-blog.vercel.app/foo</loc>
+  </url>
+  <url>
+    <loc>https://comet-land-blog.vercel.app/how-to-start</loc>
+  </url>
+  <url>
+    <loc>https://comet-land-blog.vercel.app/kbar-support</loc>
+  </url>
+  <url>
+    <loc>https://comet-land-blog.vercel.app/markdown</loc>
+  </url>
+
+  <url>
+    <loc>https://comet-land-blog.vercel.app/category/Bar</loc>
+  </url>
+  <url>
+    <loc>https://comet-land-blog.vercel.app/category/Foo</loc>
+  </url>
+  <url>
+    <loc>https://comet-land-blog.vercel.app/category/Guide</loc>
+  </url>
+</urlset>

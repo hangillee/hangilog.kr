@@ -1,0 +1,56 @@
+{
+  "name": "comet-land",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "generate-static-files": "turbo run generate-static-files",
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "test:coverage": "jest --coverage",
+    "cypress": "turbo run cypress",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "export:blog": "cd apps/blog && yarn export",
+    "export:resume": "cd apps/resume && yarn export",
+    "prepare": "husky install"
+  },
+  "engines": {
+    "npm": ">=7.0.0",
+    "node": ">=18.0.0"
+  },
+  "packageManager": "yarn@1.22.17",
+  "devDependencies": {
+    "@commitlint/cli": "^17.5.1",
+    "@commitlint/config-conventional": "^17.4.4",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "14.0.0",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/user-event": "^14.4.3",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^18.15.11",
+    "@types/react": "^18.0.31",
+    "@types/react-dom": "^18.0.11",
+    "codecov": "^3.8.3",
+    "esbuild": "^0.17.14",
+    "esbuild-jest": "^0.5.0",
+    "eslint": "^8.37.0",
+    "husky": "^8.0.3",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^28.1.1",
+    "jest-environment-jsdom": "^28.1.1",
+    "jest-watch-typeahead": "^1.1.0",
+    "lint-staged": "^13.2.0",
+    "intersection-observer": "^0.12.2",
+    "prettier": "^2.8.7",
+    "ts-jest": "^29.0.5",
+    "turbo": "^1.8.8",
+    "typescript": "^5.0.3"
+  }
+}
