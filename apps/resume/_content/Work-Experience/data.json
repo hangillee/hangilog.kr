@@ -1,93 +1,30 @@
 {
-  "title": "Work Experience",
+  "title": "주요 경험",
   "list": [
     {
-      "name": "Foo company",
-      "position": "Web Developer",
-      "startDate": "2021.03",
+      "name": "우아한테크코스",
+      "position": "웹 백엔드 6기",
+      "startDate": "2024.02",
       "endDate": "",
-      "description": "Foo company is social media company for every world",
+      "description": "우아한형제들에서 주관하는 교육과정인 우아한테크코스 6기 웹 백엔드 크루로 참여했습니다.",
       "projects": [
         {
           "title": {
-            "text": "Foo Pay",
-            "githubLink": null,
-            "otherLink": null
+            "text": "투룻",
+            "githubLink": "https://github.com/woowacourse-teams/2024-touroot",
+            "otherLink": "Https://touroot.kr"
           },
-          "description": "Leading FE developers",
-          "startDate": "2022.01",
+          "description": "여행기와 여행 계획을 손쉽게 바꿀 수 있는 여행 관련 정보 공유 커뮤니티 서비스입니다.",
+          "startDate": "2024.07",
           "endDate": "",
-          "which": ["leading fe developers", "foster SEO"],
-          "techStack": ["TypeScript", "React", "Recoil"]
-        },
-        {
-          "title": {
-            "text": "Comet land",
-            "githubLink": "https://github.com/hyesungoh/comet-land",
-            "otherLink": "https://comet-land-blog.vercel.app"
-          },
-          "description": "Monorepo for blog and resume",
-          "startDate": "2021.6",
-          "endDate": "2021.12",
-          "which": ["construct monorepo with turborepo", "design with NextUI"],
-          "techStack": ["TypeScript", "React", "Next.js", "Turborepo", "NextUI", "Emotion"]
-        },
-        {
-          "title": {
-            "text": "Foo Eat",
-            "githubLink": null,
-            "otherLink": null
-          },
-          "description": "Leading FE developers",
-          "startDate": "2021.03",
-          "endDate": "2021.06",
           "which": [
-            "develop comet-land",
-            "lorem lorem",
-            "Lorem ipsum dolor sit amet consectetur adipisicing elit. Cum iusto quasi alias provident quos perspiciatis modi dolores libero tenetur nam?"
+            "핵심 도메인인 여행기 도메인을 설계하고, CRUD 동작을 위한 API를 구현했습니다.",
+            "복잡한 도메인 생성 로직을 컨트롤러 계층으로부터 감추기 위해 Facade 패턴을 도입했고, 서비스 계층을 추상화했습니다.",
+            "편리한 테스트 코드 작성을 위해 Fixture, Helper, DatabaseCleaner 등의 유틸 클래스를 작성했습니다.",
+            "AWS CloudWatch를 활용해 모니터링 대시보드 및 경보 파이프라인을 구축했습니다.",
+            "쿼리 성능 개선을 위한 서비스에서 사용되는 쿼리 전수 조사 경험이 있습니다."
           ],
-          "techStack": null
-        }
-      ]
-    },
-    {
-      "name": "Bar company",
-      "position": "Web Developer",
-      "startDate": "2020.03",
-      "endDate": "2021.03",
-      "description": "Bar company is very awesome",
-      "projects": [
-        {
-          "title": {
-            "text": "Bar Pay",
-            "githubLink": null,
-            "otherLink": null
-          },
-          "role": "FE Dev Leader",
-          "description": "Leading FE developers",
-          "startDate": "2020.08",
-          "endDate": "2021.03",
-          "which": [
-            "Lorem ipsum dolor sit amet consectetur adipisicing elit",
-            "Cum iusto quasi alias provident quos perspiciatis modi dolores libero tenetur nam?"
-          ],
-          "techStack": ["TypeScript", "React", "Recoil"]
-        },
-        {
-          "title": {
-            "text": "Bar Play",
-            "githubLink": null,
-            "otherLink": null
-          },
-          "role": "FE Dev Leader",
-          "description": "Leading FE developers",
-          "startDate": "2020.03",
-          "endDate": "2020.08",
-          "which": [
-            "perspiciatis modi dolores libero tenetur nam.",
-            "Lorem ipsum dolor sit amet consectetur adipisicing."
-          ],
-          "techStack": ["TypeScript", "React", "Recoil"]
+          "techStack": ["Java", "Spring Boot", "QueryDSL", "JUnit 5", "REST Assured", "Swagger", "AWS"]
         }
       ]
     }

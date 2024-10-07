@@ -1,45 +1,51 @@
 {
-  "title": "Skills",
+  "title": "기술",
   "list": [
     {
-      "name": "Soft skill",
-      "descriptions": ["I like to talk"]
-    },
-    {
-      "name": "HTML/CSS",
+      "name": "소프트 스킬",
       "descriptions": [
-        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Magni, molestias.",
-        "Lorem ipsum dolor sit, amet consectetur adipisicing elit.",
-        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Consequatur quibusdam harum, nihil quidem ducimus explicabo soluta odio."
+        "회의 시간도 업무의 연장선이라고 생각합니다. 낭비되는 시간이 없도록 회의 분위기를 주도합니다.",
+        "기술적 도전을 즐깁니다. 새로운 기술을 배우고 적용하는 것에서 즐거움을 느낍니다.",
+        "동료들과의 동반 성장을 추구합니다. 내가 아는 것을 나누어 함께 성장할 때 보람을 느낍니다.",
+        "빠른 업무 처리를 중요하게 생각합니다. 다른 팀원에게 불편함을 주지 않도록 최선을 다합니다.",
+        "작성한 코드에 대한 근거를 세웁니다. 근거 없는 코드는 위험하다고 생각합니다."
       ]
     },
     {
-      "name": "JavaScript",
+      "name": "Java",
       "descriptions": [
-        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Magni, molestias.",
-        "Lorem ipsum dolor sit, amet consectetur adipisicing elit."
+        "Java 8 이후의 문법에 익숙합니다.",
+        "객체지향 생활체조를 꾸준히 실천하려 노력합니다.",
+        "다양한 디자인 패턴 도입을 통한 코드 품질 향상에 관심 있습니다."
       ]
     },
     {
-      "name": "TypeScript",
+      "name": "Spring Boot",
       "descriptions": [
-        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Magni, molestias.",
-        "Lorem ipsum dolor sit, amet consectetur adipisicing elit.",
-        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Consequatur quibusdam harum, nihil quidem ducimus explicabo soluta odio ut voluptatem praesentium."
+        "Spring Boot를 활용한 RESTful API 서버를 구축할 수 있습니다.",
+        "Spring이 제공하는 인터페이스를 재정의해 원하는 기능을 직접 구현할 수 있습니다.",
+        "Spring Data JPA를 활용한 데이터베이스 연동을 할 수 있습니다.",
+        "QueryDSL을 활용해 복잡하고 동적인 쿼리를 작성해본 경험이 있습니다.",
+        "계층화 아키텍처의 추상화 수준을 통일하기 위한 리팩터링 경험이 있습니다."
       ]
     },
     {
-      "name": "Dev Ops",
+      "name": "Test",
       "descriptions": [
-        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Magni, molestias.",
-        "Lorem ipsum dolor sit, amet consectetur adipisicing elit."
+        "JUnit 5를 활용한 단위 테스트를 작성할 수 있습니다.",
+        "REST Assured를 활용한 API 테스트를 작성할 수 있습니다.",
+        "Mockito를 활용해 모의 테스트 환경을 구축하고 행위를 검증할 수 있습니다.",
+        "편리한 테스트 코드 작성을 위한 여러 유틸 클래스를 작성해본 경험이 있습니다.",
+        "테스트 실행 속도 향상을 위한 리팩터링 경험이 있습니다."
       ]
     },
     {
-      "name": "ETC",
+      "name": "Infra",
       "descriptions": [
-        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Magni, molestias.",
-        "Lorem ipsum dolor sit, amet consectetur adipisicing elit."
+        "AWS EC2와 Docker를 활용해 WAS를 배포할 수 있습니다.",
+        "AWS ALB를 활용해 로드 밸런싱 환경을 구축할 수 있습니다.",
+        "AWS 배포 환경의 SPOF를 예측하고 해결하기 위한 인프라 구조 변경 경험이 있습니다.",
+        "AWS CloudWatch를 활용해 모니터링 대시보드 및 경보 파이프라인을 구축할 수 있습니다."
       ]
     }
   ]
