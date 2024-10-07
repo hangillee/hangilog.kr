@@ -1,32 +1,167 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://comet-land-blog.vercel.app</loc>
+    <loc>https://blog.hangilog.kr</loc>
   </url>
 
   <url>
-    <loc>https://comet-land-blog.vercel.app/bar</loc>
+    <loc>https://blog.hangilog.kr/essence-oop</loc>
   </url>
   <url>
-    <loc>https://comet-land-blog.vercel.app/foo</loc>
+    <loc>https://blog.hangilog.kr/hackathon</loc>
   </url>
   <url>
-    <loc>https://comet-land-blog.vercel.app/how-to-start</loc>
+    <loc>https://blog.hangilog.kr/miniproject</loc>
   </url>
   <url>
-    <loc>https://comet-land-blog.vercel.app/kbar-support</loc>
+    <loc>https://blog.hangilog.kr/cache</loc>
   </url>
   <url>
-    <loc>https://comet-land-blog.vercel.app/markdown</loc>
+    <loc>https://blog.hangilog.kr/http-header</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/http-method</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/http-status</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/http</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/internet</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/uri</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/about-jpa</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/advanced-mapping</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/cascade</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/entity-mapping</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/loading</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/persistence-management</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/proxy</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/relational-mapping-basic</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/relational-mapping-types</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/value-type</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/static-factory-method</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/bean-scope</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/component-scan</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/container-bean</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/di-type</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/ioc-di</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/lifecycle-callback</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/oop</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/singleton</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/solid</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/spring</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/java-web-history</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/multi-thread</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/mvc-pattern</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/servlet</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/web-was</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/precourse-week1</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/precourse-week2</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/precourse-week3</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/precourse-week4</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/woowacourse-final-test</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/woowacourse-level1-mission1</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/woowacourse-level1-mission2</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/woowacourse-level1-mission3</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/woowacourse-level1-mission4</loc>
   </url>
 
   <url>
-    <loc>https://comet-land-blog.vercel.app/category/Bar</loc>
+    <loc>https://blog.hangilog.kr/category/Book</loc>
   </url>
   <url>
-    <loc>https://comet-land-blog.vercel.app/category/Foo</loc>
+    <loc>https://blog.hangilog.kr/category/GDSC</loc>
   </url>
   <url>
-    <loc>https://comet-land-blog.vercel.app/category/Guide</loc>
+    <loc>https://blog.hangilog.kr/category/HTTP</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/category/JPA</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/category/Java</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/category/Spring</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/category/Spring MVC</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/category/우아한테크코스</loc>
   </url>
 </urlset>

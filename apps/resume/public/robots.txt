@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: https://comet-land-resume.vercel.app/sitemap.xml
+Sitemap: https://resume.hangilog.kr/sitemap.xml
