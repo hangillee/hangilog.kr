@@ -1,30 +1,44 @@
 {
-  "title": "주요 경험",
+  "title": "참여한 프로젝트",
   "list": [
     {
       "name": "우아한테크코스",
-      "position": "웹 백엔드 6기",
-      "startDate": "2024.02",
+      "position": "웹 백엔드 개발자",
+      "startDate": "2024.02.14",
       "endDate": "",
       "description": "우아한형제들에서 주관하는 교육과정인 우아한테크코스 6기 웹 백엔드 크루로 참여했습니다.",
       "projects": [
         {
           "title": {
-            "text": "투룻",
+            "text": "투룻(touroot)",
             "githubLink": "https://github.com/woowacourse-teams/2024-touroot",
             "otherLink": "Https://touroot.kr"
           },
           "description": "여행기와 여행 계획을 손쉽게 바꿀 수 있는 여행 관련 정보 공유 커뮤니티 서비스입니다.",
           "startDate": "2024.07",
-          "endDate": "",
+          "endDate": "2024.11",
           "which": [
-            "핵심 도메인인 여행기 도메인을 설계하고, CRUD 동작을 위한 API를 구현했습니다.",
-            "복잡한 도메인 생성 로직을 컨트롤러 계층으로부터 감추기 위해 Facade 패턴을 도입했고, 서비스 계층을 추상화했습니다.",
+            "핵심 도메인인 여행기(Travelogue)를 설계하고 REST API를 구현했습니다.",
+            "JUnit 5와 REST Assured를 활용해 여행기 도메인에 대한 테스트 코드를 작성했습니다.",
             "편리한 테스트 코드 작성을 위해 Fixture, Helper, DatabaseCleaner 등의 유틸 클래스를 작성했습니다.",
-            "AWS CloudWatch를 활용해 모니터링 대시보드 및 경보 파이프라인을 구축했습니다.",
-            "쿼리 성능 개선을 위한 서비스에서 사용되는 쿼리 전수 조사 경험이 있습니다."
+            "Facade 패턴을 도입해 컨트롤러 계층으로부터 복잡한 도메인 생성 로직을 가진 서비스 계층을 추상화했습니다.",
+            "Querydsl을 활용해 여행기 검색 기능을 위한 동적 쿼리를 작성했습니다.",
+            "AWS CloudWatch, SNS, Lambda를 활용해 모니터링 대시보드 및 경보 파이프라인을 구축했습니다.",
+            "AWS Elastic Load Balancer를 활용해 서비스 부하 분산을 시도해봤습니다.",
+            "Docker, Nginx와 Github Actions를 활용해 무중단 배포 환경을 구축해본 경험이 있습니다."
           ],
-          "techStack": ["Java", "Spring Boot", "QueryDSL", "JUnit 5", "REST Assured", "Swagger", "AWS"]
+          "techStack": [
+            "Java",
+            "Spring Boot",
+            "QueryDSL",
+            "JUnit 5",
+            "REST Assured",
+            "Swagger",
+            "AWS",
+            "Docker",
+            "Nginx",
+            "Github Actions"
+          ]
         }
       ]
     }
