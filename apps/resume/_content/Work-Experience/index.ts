@@ -22,6 +22,11 @@ export interface Project {
 }
 
 export interface Company {
+  name: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+  description: string;
   projects: Project[];
 }
 

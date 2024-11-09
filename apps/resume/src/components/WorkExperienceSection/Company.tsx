@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import { config, NextUITheme, useTheme } from '@nextui-org/react';
 
-import { Company } from '../../../_content/Work-Experience';
+import type { Company } from '../../../_content/Work-Experience';
 
 function Company({ name, position, startDate, endDate, description }: Omit<Company, 'projects'>) {
   const { theme } = useTheme();
