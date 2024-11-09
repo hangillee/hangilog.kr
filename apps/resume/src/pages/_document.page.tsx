@@ -1,10 +1,11 @@
 import Document, { Head, Html, Main, NextScript } from 'next/document';
 import { CssBaseline } from '@nextui-org/react';
-import { Footer, GlobalStyle, Layout } from 'core';
+import { Footer, Layout } from 'core';
 import { authorImage, authorName, favicon, resumeGAID, resumeHotjarID } from 'core/constants';
 
 import { resumeUrl } from '../../_config';
 import { data } from '../../_content/Header';
+import { ResumeStyle } from '../styles/ResumeStyle';
 
 const TITLE = `${authorName} resume`;
 
@@ -72,7 +73,7 @@ export default class ResumeDocument extends Document {
             ></script>
           )}
 
-          <GlobalStyle />
+          <ResumeStyle />
         </Head>
         <body>
           <Layout>

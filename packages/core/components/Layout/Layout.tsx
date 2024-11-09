@@ -7,7 +7,7 @@ export function Layout({ children }: PropsWithChildren<unknown>) {
 
 const Div = styled.div`
   position: relative;
-  max-width: 660px;
+  max-width: 680px;
   width: 100%;
   min-height: 100vh;
   margin: 0 auto;

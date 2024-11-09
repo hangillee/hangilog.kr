@@ -2,11 +2,11 @@ import { Fragment } from 'react';
 import styled from '@emotion/styled';
 import { useTheme } from '@nextui-org/react';
 
-import type { Experience } from '../../../_content/Other-Experience';
+import { Academy } from '../../../_content/Education';
 import Li from '../Li';
 import TitleTooltip from '../TitleTooltip';
 
-function Experience({ title, position, startDate, endDate, description, which }: Experience) {
+function Education({ title, major: position, startDate, endDate, which }: Academy) {
   const { theme } = useTheme();
 
   return (
@@ -16,7 +16,6 @@ function Experience({ title, position, startDate, endDate, description, which }:
         {startDate} ~ {endDate}
       </small>
       <span>{position}</span>
-      <p>{description}</p>
       {which.length > 0 && (
         <ul>
           {which.map((each, index) => (
@@ -39,7 +38,7 @@ function Experience({ title, position, startDate, endDate, description, which }:
   );
 }
 
-export default Experience;
+export default Education;
 
 const Div = styled.div`
   display: flex;

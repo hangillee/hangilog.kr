@@ -1,5 +1,5 @@
 {
-  "title": "경험",
+  "title": "Activities",
   "list": [
     {
       "title": {
@@ -10,30 +10,41 @@
       "position": "웹 백엔드 6기",
       "startDate": "2024.02.14",
       "endDate": "2024.11.29",
-      "description": "우아한형제들에서 주관하는 교육과정인 우아한테크코스 6기 웹 백엔드 과정을 수료했습니다.",
+      "description": "우아한형제들에서 주관하는 개발자 교육 프로그램의 6기 웹 백엔드 과정을 수료했습니다.",
       "which": [
-        "Java와 Spring Boot를 기반으로 객체지향 프로그래밍과 테스트 주도 개발에 대해 학습했습니다.",
-        "동료 개발자와의 페어 프로그래밍과 코드 리뷰 문화에 익숙합니다.",
-        "서드파티 API를 활용한 결제 서비스를 개발 해본 경험이 있습니다.",
-        "\"IoC와 DI\"를 주제로 약 10분 간 동료 개발자 앞에서 발표했습니다.",
-        "총 8명으로 구성된 팀에서 프로젝트를 진행하며 약 4개월 간의 협업을 경험했습니다."
+        { "main": "Java와 Spring Boot를 기반으로 웹 백엔드 기술을 학습했습니다." },
+        { "main": "<strong>객체지향 프로그래밍</strong>과 <strong>테스트 주도 개발</strong>에 대해 학습했습니다." },
+        { "main": "동료 개발자와의 <strong>페어 프로그래밍</strong>과 <strong>코드 리뷰 문화</strong>에 익숙합니다." },
+        { "main": "글쓰기, 유연성 강화 스터디를 통해 소프트 스킬 강화를 위해 노력했습니다." },
+        {
+          "main": "<strong><a href='https://youtu.be/BO7QFUnVdjc?si=ZIyV50MQMSoLtQYO'>\"IoC와 DI\"</a></strong>를 주제로 약 10분 간 동료들에게 발표한 경험이 있습니다."
+        }
       ]
     },
     {
       "title": {
-        "text": "Google Developer Group on Campus 성공회대학교",
+        "text": "GDG on Campus 성공회대학교",
         "githubLink": "https://github.com/GDG-on-Campus-SKHU",
         "otherLink": null
       },
       "position": "Core, Lead",
       "startDate": "2022.07",
       "endDate": "2024.07",
-      "description": "GDG on Campus 성공회대학교 리드로 활동했습니다.",
+      "description": "Google에서 주관하는 학생 개발자 커뮤니티인 GDGoC의 성공회대학교 챕터를 운영했습니다.",
       "which": [
-        "교내 최대인 60명 규모의 개발 동아리를 이끌며 학생 개발자 생태계를 활성화했습니다.",
-        "타 대학 GDGoC 챕터와의 연합 해커톤 행사를 개최해본 경험이 있습니다.",
-        "동아리내 웹 백엔드 분야 기술 스터디를 주도했습니다.",
-        "코드 리뷰 문화를 이식하는데 노력했습니다."
+        {
+          "main": "Java와 Spring Boot 기반 <strong>웹 백엔드 분야 기술 스터디</strong>를 <strong>주도</strong>했습니다."
+        },
+        {
+          "main": "교내 개발자 커뮤니티 확대를 위해 여러 행사를 주최했습니다.",
+          "sub": [
+            "타 대학 GDGoC 챕터와 함께 <strong>연합 해커톤 행사</strong>를 <strong>주최</strong>했습니다.",
+            "졸업한 선배 개발자를 초청해 <strong>컨퍼런스 행사</strong>를 <strong>주최</strong>했습니다."
+          ]
+        },
+        {
+          "main": "<strong><a href='https://github.com/gdgoc-skhu-missions'>코드 리뷰 문화 이식을 위한 스터디</a></strong>를 운영한 경험이 있습니다."
+        }
       ]
     }
   ]

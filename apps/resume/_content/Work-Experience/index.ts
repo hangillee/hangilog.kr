@@ -1,5 +1,13 @@
 import data from './data.json';
 
+interface Which {
+  title: string;
+  content: Array<{
+    main: string;
+    sub?: string[];
+  }>;
+}
+
 export interface Project {
   title: {
     text: string;
@@ -9,16 +17,11 @@ export interface Project {
   description: string;
   startDate: string;
   endDate: string;
-  which: string[];
+  which: Which[];
   techStack: string[] | null;
 }
 
 export interface Company {
-  name: string;
-  position: string;
-  startDate: string;
-  endDate: string;
-  description: string;
   projects: Project[];
 }
 

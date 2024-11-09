@@ -1,24 +1,23 @@
 import data from './data.json';
 
-export interface Experience {
+export interface Academy {
   title: {
     text: string;
     githubLink: string | null;
     otherLink: string | null;
   };
-  position: string;
+  major: string;
   startDate: string;
   endDate: string;
-  description: string;
   which: Array<{
     main: string;
     sub?: string[];
   }>;
 }
 
-export interface OtherExperience {
+export interface Educations {
   title: string;
-  list: Experience[];
+  list: Academy[];
 }
 
 export { data };

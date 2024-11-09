@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 import { useTheme } from '@nextui-org/react';
 
-import { Skill } from '../../../_content/Skills';
+import type { Skill } from '../../../_content/Skills';
 import Li from '../Li';
 
 function Skill({ name, descriptions }: Skill) {
   const { theme } = useTheme();
   return (
     <Div>
-      <h3>{name}</h3>
+      <h4>{name}</h4>
       <ul>
         {descriptions.map((description, index) => (
           <Li key={index} theme={theme}>
