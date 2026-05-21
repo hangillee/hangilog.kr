@@ -84,6 +84,19 @@ console.log('foo');
     expect(document.getElementsByTagName('code')).not.toBeNull();
   });
 
+  it('should render github flavored markdown tables', async () => {
+    const markdown = `| Header | Value |
+|--------|-------|
+| TPS    | 104.22 |`;
+
+    const result = await markdownToHtml(markdown);
+
+    render(<Wrapper source={result} />);
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Header' })).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: '104.22' })).toBeInTheDocument();
+  });
+
   it('should render line numbers at code', async () => {
     const markdown = `
 \`\`\`jsx showLineNumbers

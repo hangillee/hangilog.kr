@@ -51,15 +51,19 @@ const Main = styled.main`
 
 const H1 = styled.h1`
   margin: 0;
+  font-size: clamp(2rem, 5vw, 2.5rem);
+  line-height: 1.25;
 `;
 
 const P = styled.p<{ theme: NextUITheme | undefined }>`
   margin-top: 0;
-  margin-bottom: 3rem;
+  margin-bottom: 1rem;
   color: ${({ theme }) => theme.colors.accents6.value};
 `;
 
 const Article = styled.article`
+  overflow-x: auto;
+
   & h1,
   & h2 {
     margin-top: 2rem;
@@ -78,6 +82,38 @@ const Article = styled.article`
 
   & hr {
     margin: 1.5rem 0;
+  }
+
+  & table {
+    width: 100%;
+    min-width: 100%;
+    margin: 1rem 0 1.5rem;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-size: 0.95rem;
+  }
+
+  & th,
+  & td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--nextui-colors-border);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  & th {
+    background-color: var(--nextui-colors-accents1);
+    font-weight: 600;
+  }
+
+  & tbody tr:nth-of-type(even) {
+    background-color: var(--nextui-colors-accents0);
+  }
+
+  & p,
+  & li {
+    text-align: justify;
+    text-justify: inter-word;
   }
 
   & p {
