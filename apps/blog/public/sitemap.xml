@@ -5,13 +5,10 @@
   </url>
 
   <url>
-    <loc>https://blog.hangilog.kr/essence-oop</loc>
+    <loc>https://blog.hangilog.kr/sharding-partitioning</loc>
   </url>
   <url>
     <loc>https://blog.hangilog.kr/hackathon</loc>
-  </url>
-  <url>
-    <loc>https://blog.hangilog.kr/miniproject</loc>
   </url>
   <url>
     <loc>https://blog.hangilog.kr/cache</loc>
@@ -29,25 +26,10 @@
     <loc>https://blog.hangilog.kr/http</loc>
   </url>
   <url>
-    <loc>https://blog.hangilog.kr/internet</loc>
-  </url>
-  <url>
-    <loc>https://blog.hangilog.kr/uri</loc>
-  </url>
-  <url>
     <loc>https://blog.hangilog.kr/about-jpa</loc>
   </url>
   <url>
     <loc>https://blog.hangilog.kr/advanced-mapping</loc>
-  </url>
-  <url>
-    <loc>https://blog.hangilog.kr/cascade</loc>
-  </url>
-  <url>
-    <loc>https://blog.hangilog.kr/entity-mapping</loc>
-  </url>
-  <url>
-    <loc>https://blog.hangilog.kr/loading</loc>
   </url>
   <url>
     <loc>https://blog.hangilog.kr/persistence-management</loc>
@@ -62,7 +44,7 @@
     <loc>https://blog.hangilog.kr/relational-mapping-types</loc>
   </url>
   <url>
-    <loc>https://blog.hangilog.kr/value-type</loc>
+    <loc>https://blog.hangilog.kr/spring-data-jpa-query</loc>
   </url>
   <url>
     <loc>https://blog.hangilog.kr/static-factory-method</loc>
@@ -101,18 +83,6 @@
     <loc>https://blog.hangilog.kr/java-web-history</loc>
   </url>
   <url>
-    <loc>https://blog.hangilog.kr/multi-thread</loc>
-  </url>
-  <url>
-    <loc>https://blog.hangilog.kr/mvc-pattern</loc>
-  </url>
-  <url>
-    <loc>https://blog.hangilog.kr/servlet</loc>
-  </url>
-  <url>
-    <loc>https://blog.hangilog.kr/web-was</loc>
-  </url>
-  <url>
     <loc>https://blog.hangilog.kr/precourse-week1</loc>
   </url>
   <url>
@@ -123,6 +93,9 @@
   </url>
   <url>
     <loc>https://blog.hangilog.kr/precourse-week4</loc>
+  </url>
+  <url>
+    <loc>https://blog.hangilog.kr/tomcat-performance</loc>
   </url>
   <url>
     <loc>https://blog.hangilog.kr/woowacourse-final-test</loc>
@@ -141,7 +114,7 @@
   </url>
 
   <url>
-    <loc>https://blog.hangilog.kr/category/Book</loc>
+    <loc>https://blog.hangilog.kr/category/Database</loc>
   </url>
   <url>
     <loc>https://blog.hangilog.kr/category/GDSC</loc>
@@ -162,6 +135,6 @@
     <loc>https://blog.hangilog.kr/category/Spring MVC</loc>
   </url>
   <url>
-    <loc>https://blog.hangilog.kr/category/우아한테크코스</loc>
+    <loc>https://blog.hangilog.kr/category/우아한테크코스</loc>
   </url>
 </urlset>

@@ -5,8 +5,6 @@ date: 2024-11-16 21:00:00
 category: 'JPA'
 ---
 
-# Spring Data JPA와 쿼리
-
 > 이 글은 Spring Data JPA를 어느 정도 학습했거나 소규모 팀 프로젝트에서 사용해 본 "초보" Java 백엔드 개발자를 위한 글입니다.
 
 ## 1. Spring Data JPA의 함정

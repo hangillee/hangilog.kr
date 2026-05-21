@@ -12,8 +12,713 @@
           <![CDATA[다른 사람을 돕는 개발자를 꿈꿉니다.]]>
         </description>
         <language>en</language>
-        <lastBuildDate>2024-04-18</lastBuildDate>
+        <lastBuildDate>2025-05-31</lastBuildDate>
         <item>
+    <title><![CDATA[샤딩과 파티셔닝]]></title>
+    <link>https://blog.hangilog.kr/sharding-partitioning</link>
+    <pubDate>2025-05-31</pubDate>
+    <guid isPermaLink="false">https://blog.hangilog.kr/sharding-partitioning</guid>
+    <description>
+    <![CDATA[DB 분할로 성능 개선하기]]>
+    </description>
+    <content:encoded>
+      <![CDATA[<h2 id="db에도-한계가-있다" class="heading">DB에도 한계가 있다!</h2>
+<p>우리가 데이터를 저장하고 관리하기 위해 사용하는 DB에는 한계가 있습니다. 즉, 무한히 데이터를 적재할 수 없습니다. <strong>데이터가 많아지면 많아질수록</strong> 데이터의 삽입, 조회, 인덱싱 등의 <strong>모든 연산 과정에서 성능이 저하</strong>됩니다. 결국 하나의 거대한 DB는 전체 시스템의 병목 지점으로 전락할 것입니다.</p>
+<p>이런 상황을 막기 위해 우린 비대한 DB를 나눠야 합니다. DB를 분할하는 방법에는 대표적으로 <strong>샤딩</strong>(Sharding)과 <strong>파티셔닝</strong>(Partitioning)이 있습니다. 두 방법 모두 데이터를 여러 조각으로 나눈다는 점에서는 비슷하지만, 나누는 목적과 운영 방식에는 꽤 큰 차이가 있습니다.</p>
+<p>얼핏 보면 단순히 테이블이나 DB를 여러 개로 쪼개는 일처럼 보입니다. 하지만 실제로는 어떤 기준으로 나눌지, 나눈 데이터를 어떻게 조회할지, 여러 조각에 걸친 트랜잭션은 어떻게 다룰지까지 함께 고민해야 합니다. 잘못 나누면 오히려 쿼리가 더 복잡해지고, 장애가 발생했을 때 원인을 찾기 어려운 구조가 될 수 있습니다.</p>
+<p>이번 글에서는 샤딩과 파티셔닝이 무엇인지, 두 방법은 어떤 차이가 있는지, 그리고 어떤 상황에서 선택해야 하는지 정리해보겠습니다.</p>
+<h2 id="db를-키우는-두-가지-방향" class="heading">DB를 키우는 두 가지 방향</h2>
+<p>DB 성능을 개선하는 가장 직관적인 방법은 더 좋은 장비를 사용하는 것입니다. CPU, 메모리, 디스크 성능을 높이면 하나의 DB가 더 많은 요청을 처리할 수 있습니다. 이런 방식을 <strong>스케일 업</strong>(Scale Up)이라고 합니다.</p>
+<p>하지만 스케일 업에는 명확한 한계가 있습니다. 장비 성능을 무한히 높일 수 없고, 일정 수준을 넘어가면 비용 대비 성능 향상도 점점 작아집니다. 무엇보다 하나의 DB에 모든 요청이 몰리는 구조 자체는 그대로 남아 있습니다. 결국 DB 한 대가 감당할 수 있는 한계에 도달하면 더 이상 버티기 어렵습니다.</p>
+<p>반대로 DB를 여러 대로 늘려 부하를 분산하는 방식도 있습니다. 이를 <strong>스케일 아웃</strong>(Scale Out)이라고 합니다. 읽기 요청이 많다면 Replication을 통해 읽기 전용 DB를 늘릴 수 있고, 데이터 자체가 너무 많다면 데이터를 여러 곳에 나눠 저장할 수도 있습니다.</p>
+<p>여기서 중요한 것은 단순히 DB를 여러 대로 늘리는 것만으로 문제가 해결되지는 않는다는 점입니다. 데이터를 나누지 않은 채 서버만 늘린다면 모든 서버가 같은 데이터를 들고 있어야 하고, 쓰기 요청의 병목은 여전히 남게 됩니다. 데이터의 양 자체가 문제라면 결국 <strong>데이터를 어떻게 나눌 것인지</strong>가 핵심이 됩니다.</p>
+<h2 id="파티셔닝이란" class="heading">파티셔닝이란?</h2>
+<p><strong>파티셔닝</strong>(Partitioning)은 하나의 큰 테이블을 여러 개의 작은 단위로 나누는 방식입니다. 이때 나뉜 각각의 조각을 <strong>파티션</strong>(Partition)이라고 부릅니다. 사용자는 여전히 하나의 테이블을 조회하는 것처럼 사용할 수 있지만, DB 내부에서는 여러 파티션 중 필요한 범위만 접근하도록 최적화할 수 있습니다.</p>
+<p>예를 들어 주문 데이터가 <code>orders</code> 테이블 하나에 계속 쌓이고 있다고 생각해보겠습니다. 서비스가 성장하면서 주문 데이터가 수천만 건, 수억 건으로 늘어나면 특정 기간의 주문만 조회하는 쿼리도 점점 느려질 수 있습니다. 이때 주문일을 기준으로 월별 파티션을 만들면, 2025년 5월 주문을 조회할 때 전체 테이블을 모두 뒤지지 않고 2025년 5월 파티션만 확인할 수 있습니다.</p>
+<p>즉, 파티셔닝은 <strong>큰 테이블을 관리 가능한 작은 단위로 나누고, 필요한 데이터만 효율적으로 접근하기 위한 방법</strong>입니다.</p>
+<h3 id="수평-파티셔닝">수평 파티셔닝</h3>
+<p><strong>수평 파티셔닝</strong>(Horizontal Partitioning)은 행(Row)을 기준으로 데이터를 나누는 방식입니다. 테이블의 컬럼 구조는 그대로 유지하고, 어떤 행을 어떤 파티션에 저장할지만 결정합니다.</p>
+<p>예를 들어 주문 테이블을 주문일 기준으로 나눈다면 다음과 같이 생각할 수 있습니다.</p>
+<table>
+<thead>
+<tr>
+<th>파티션</th>
+<th>저장되는 데이터</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>orders_2025_01</td>
+<td>2025년 1월 주문</td>
+</tr>
+<tr>
+<td>orders_2025_02</td>
+<td>2025년 2월 주문</td>
+</tr>
+<tr>
+<td>orders_2025_03</td>
+<td>2025년 3월 주문</td>
+</tr>
+</tbody>
+</table>
+<p>이 방식은 특정 범위의 데이터만 자주 조회할 때 효과적입니다. 오래된 데이터를 별도로 보관하거나 삭제하기에도 좋습니다. 예를 들어 3년이 지난 로그 데이터를 삭제해야 한다면 거대한 테이블에서 조건에 맞는 행을 하나씩 삭제하는 대신, 오래된 파티션 자체를 제거할 수 있습니다.</p>
+<h3 id="수직-파티셔닝">수직 파티셔닝</h3>
+<p><strong>수직 파티셔닝</strong>(Vertical Partitioning)은 컬럼(Column)을 기준으로 데이터를 나누는 방식입니다. 하나의 테이블에 너무 많은 컬럼이 있거나, 자주 사용되는 컬럼과 거의 사용되지 않는 컬럼이 섞여 있을 때 활용할 수 있습니다.</p>
+<p>예를 들어 회원 테이블에 기본 정보와 프로필 이미지, 자기소개, 설정값 등이 모두 들어있다고 생각해보겠습니다. 로그인이나 권한 확인에서는 회원의 식별자, 이메일, 비밀번호 정도만 필요할 수 있습니다. 반면 프로필 이미지는 특정 화면에서만 필요합니다. 이때 자주 사용하는 기본 정보와 상대적으로 덜 사용하는 프로필 정보를 분리하면, 대부분의 조회에서 불필요한 데이터를 읽지 않아도 됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>테이블</th>
+<th>포함하는 데이터</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>members</td>
+<td>id, email, password, name</td>
+</tr>
+<tr>
+<td>member_profiles</td>
+<td>member_id, image_url, introduction</td>
+</tr>
+</tbody>
+</table>
+<p>물론 수직 파티셔닝은 무조건 좋은 방법이 아닙니다. 함께 조회해야 하는 컬럼을 너무 잘게 나누면 오히려 조인이 늘어나고, 애플리케이션 코드가 복잡해질 수 있습니다. 따라서 실제 조회 패턴을 기준으로 나눌 필요가 있습니다.</p>
+<h2 id="파티셔닝-방식" class="heading">파티셔닝 방식</h2>
+<p>파티셔닝에는 여러 방식이 있습니다. 어떤 기준으로 데이터를 나누느냐에 따라 성능과 관리 방식이 달라집니다.</p>
+<h3 id="range-partitioning">Range Partitioning</h3>
+<p><strong>Range Partitioning</strong>은 특정 값의 범위를 기준으로 데이터를 나누는 방식입니다. 날짜, 숫자, 연속적인 범위를 가진 값에 자주 사용됩니다.</p>
+<p>대표적인 예시는 날짜 기준 파티셔닝입니다.</p>
+<table>
+<thead>
+<tr>
+<th>파티션</th>
+<th>조건</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>orders_2024</td>
+<td>ordered_at &#x3C; 2025-01-01</td>
+</tr>
+<tr>
+<td>orders_2025_01</td>
+<td>2025-01-01 &#x3C;= ordered_at &#x3C; 2025-02-01</td>
+</tr>
+<tr>
+<td>orders_2025_02</td>
+<td>2025-02-01 &#x3C;= ordered_at &#x3C; 2025-03-01</td>
+</tr>
+</tbody>
+</table>
+<p>Range Partitioning은 특정 기간의 데이터를 조회할 때 효과적입니다. 하지만 특정 범위에 데이터가 몰리면 일부 파티션만 과도하게 커질 수 있습니다. 예를 들어 최근 주문 데이터만 폭발적으로 증가한다면 최근 월 파티션에 대부분의 쓰기 요청이 몰릴 수 있습니다.</p>
+<h3 id="list-partitioning">List Partitioning</h3>
+<p><strong>List Partitioning</strong>은 미리 정해진 값 목록을 기준으로 데이터를 나누는 방식입니다. 지역, 카테고리, 상태값처럼 값의 종류가 명확할 때 사용할 수 있습니다.</p>
+<p>예를 들어 사용자 데이터를 지역별로 나눌 수 있습니다.</p>
+<table>
+<thead>
+<tr>
+<th>파티션</th>
+<th>조건</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>users_seoul</td>
+<td>region = 'SEOUL'</td>
+</tr>
+<tr>
+<td>users_busan</td>
+<td>region = 'BUSAN'</td>
+</tr>
+<tr>
+<td>users_etc</td>
+<td>그 외 지역</td>
+</tr>
+</tbody>
+</table>
+<p>값의 의미가 명확하기 때문에 이해하기 쉽다는 장점이 있습니다. 하지만 값의 종류가 자주 바뀌거나 특정 값에 데이터가 몰리면 관리가 어려워질 수 있습니다.</p>
+<h3 id="hash-partitioning">Hash Partitioning</h3>
+<p><strong>Hash Partitioning</strong>은 특정 컬럼의 해시 값을 기준으로 데이터를 나누는 방식입니다. 데이터가 특정 범위나 값에 몰리지 않도록 비교적 균등하게 분산할 수 있습니다.</p>
+<p>예를 들어 사용자 ID를 기준으로 4개의 파티션에 데이터를 나눈다면 다음과 같이 생각할 수 있습니다.</p>
+<pre class="language-text"><code class="language-text code-highlight"><span class="code-line">partition = hash(user_id) % 4
+</span></code></pre>
+<p>Hash Partitioning은 데이터를 균등하게 분산하기 좋습니다. 하지만 범위 조회에는 약합니다. <code>user_id</code>의 해시 값을 기준으로 나눴다면, 특정 가입 기간의 사용자를 조회할 때 어떤 파티션에 데이터가 있는지 직관적으로 알기 어렵습니다.</p>
+<p>결국 파티셔닝 방식은 조회 패턴과 데이터 증가 패턴을 함께 고려해 선택해야 합니다. 단순히 데이터를 균등하게 나누는 것보다, 실제 서비스에서 어떤 조건으로 데이터를 자주 조회하는지가 더 중요합니다.</p>
+<h2 id="샤딩이란" class="heading">샤딩이란?</h2>
+<p><strong>샤딩</strong>(Sharding)은 데이터를 여러 DB에 나누어 저장하는 방식입니다. 각각의 DB를 <strong>샤드</strong>(Shard)라고 부릅니다. 파티셔닝이 보통 하나의 DB 내부에서 테이블을 나누는 방식이라면, 샤딩은 데이터를 여러 DB 서버에 분산한다는 점이 핵심입니다.</p>
+<p>예를 들어 사용자 데이터를 사용자 ID 기준으로 4개의 DB에 나눠 저장한다고 생각해보겠습니다.</p>
+<table>
+<thead>
+<tr>
+<th>샤드</th>
+<th>저장되는 데이터</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>shard_0</td>
+<td>hash(user_id) % 4 = 0</td>
+</tr>
+<tr>
+<td>shard_1</td>
+<td>hash(user_id) % 4 = 1</td>
+</tr>
+<tr>
+<td>shard_2</td>
+<td>hash(user_id) % 4 = 2</td>
+</tr>
+<tr>
+<td>shard_3</td>
+<td>hash(user_id) % 4 = 3</td>
+</tr>
+</tbody>
+</table>
+<p>이렇게 나누면 하나의 DB가 모든 데이터를 저장하지 않아도 됩니다. 쓰기 요청도 여러 DB로 분산할 수 있습니다. 즉, 샤딩은 단일 DB의 저장 용량과 쓰기 처리량 한계를 넘기 위한 스케일 아웃 전략입니다.</p>
+<p>다만 샤딩은 파티셔닝보다 훨씬 운영 난이도가 높습니다. 데이터가 여러 DB에 흩어져 있기 때문에 애플리케이션은 어떤 데이터가 어떤 샤드에 있는지 알아야 합니다. 또한 여러 샤드에 걸친 조회, 조인, 트랜잭션은 단일 DB에서 처리할 때보다 훨씬 어려워집니다.</p>
+<h2 id="샤드-키" class="heading">샤드 키</h2>
+<p>샤딩에서 가장 중요한 결정은 <strong>샤드 키</strong>(Shard Key)를 무엇으로 선택할지입니다. 샤드 키는 데이터를 어떤 샤드에 저장할지 결정하는 기준입니다.</p>
+<p>예를 들어 사용자 ID를 샤드 키로 선택하면, 특정 사용자의 데이터는 항상 같은 샤드에 저장되도록 만들 수 있습니다. 사용자의 주문, 장바구니, 알림처럼 사용자 단위로 조회되는 데이터가 많다면 사용자 ID는 좋은 샤드 키가 될 수 있습니다.</p>
+<p>하지만 샤드 키를 잘못 선택하면 데이터가 고르게 분산되지 않습니다. 이를 <strong>데이터 쏠림</strong>(Skew)이라고 합니다. 예를 들어 지역을 샤드 키로 선택했는데 대부분의 사용자가 서울에 몰려 있다면, 서울 샤드만 과도하게 커지고 다른 샤드는 거의 사용되지 않을 수 있습니다.</p>
+<p>좋은 샤드 키를 선택하기 위해서는 다음과 같은 기준을 고려해야 합니다.</p>
+<ul>
+<li>데이터가 여러 샤드에 고르게 분산되는가?</li>
+<li>자주 조회하는 조건에 포함되는가?</li>
+<li>하나의 요청이 여러 샤드를 건드리지 않도록 도와주는가?</li>
+<li>시간이 지나도 특정 샤드에 데이터가 몰리지 않는가?</li>
+</ul>
+<p>결국 샤드 키는 단순히 유니크한 값을 고르는 문제가 아닙니다. 서비스의 조회 패턴과 데이터 증가 방향을 함께 고려해야 합니다.</p>
+<h2 id="샤딩의-어려움" class="heading">샤딩의 어려움</h2>
+<p>샤딩은 강력한 방법이지만, 그만큼 많은 복잡도를 가져옵니다. 특히 기존에 단일 DB를 전제로 작성했던 코드와 운영 방식이 그대로 동작하지 않을 가능성이 큽니다.</p>
+<h3 id="cross-shard-query">Cross-Shard Query</h3>
+<p>데이터가 여러 샤드에 흩어져 있으면, 하나의 쿼리로 모든 데이터를 쉽게 조회하기 어렵습니다. 예를 들어 전체 사용자 중 최근 1시간 동안 가입한 사용자를 조회해야 한다면 모든 샤드를 확인해야 할 수 있습니다.</p>
+<p>단일 DB에서는 간단한 쿼리였던 작업이 샤딩 이후에는 다음과 같은 과정으로 바뀔 수 있습니다.</p>
+<ol>
+<li>모든 샤드에 쿼리를 보낸다.</li>
+<li>각 샤드의 결과를 모은다.</li>
+<li>애플리케이션에서 정렬하거나 집계한다.</li>
+<li>필요한 만큼 잘라서 응답한다.</li>
+</ol>
+<p>즉, DB가 해주던 일을 애플리케이션이나 별도의 집계 시스템이 대신해야 할 수 있습니다.</p>
+<h3 id="join과-transaction">Join과 Transaction</h3>
+<p>샤딩된 환경에서는 조인도 어려워집니다. 서로 다른 샤드에 있는 데이터를 조인하려면 네트워크를 넘나들며 데이터를 가져와야 합니다. 성능도 떨어지고 구현도 복잡해집니다.</p>
+<p>트랜잭션도 마찬가지입니다. 하나의 DB 안에서는 트랜잭션으로 원자성을 보장하기 쉽지만, 여러 샤드에 걸친 트랜잭션은 훨씬 어렵습니다. 분산 트랜잭션을 사용할 수도 있지만, 성능과 운영 복잡도 측면에서 부담이 큽니다.</p>
+<p>그래서 샤딩을 적용한 시스템에서는 가능하면 하나의 요청이 하나의 샤드 안에서 끝나도록 도메인을 설계하는 것이 중요합니다. 사용자 ID를 기준으로 샤딩했다면 사용자와 강하게 묶인 데이터는 같은 샤드에 저장하는 식입니다.</p>
+<h3 id="rebalancing">Rebalancing</h3>
+<p>서비스가 계속 성장하면 처음에 만든 샤드 개수로는 부족해질 수 있습니다. 이때 샤드를 추가하고 데이터를 다시 분산해야 합니다. 이를 <strong>리밸런싱</strong>(Rebalancing)이라고 합니다.</p>
+<p>리밸런싱은 생각보다 까다롭습니다. 이미 운영 중인 데이터의 일부를 다른 샤드로 옮겨야 하고, 데이터 이동 중에도 서비스는 계속 정상적으로 동작해야 합니다. 데이터가 이동하는 동안 라우팅 정보가 꼬이면 같은 사용자의 데이터가 두 곳에 나뉘어 저장되거나, 조회가 실패할 수도 있습니다.</p>
+<p>따라서 샤딩은 적용하는 순간뿐만 아니라, 샤드가 늘어날 미래까지 함께 고려해야 합니다.</p>
+<h2 id="샤딩과-파티셔닝의-차이" class="heading">샤딩과 파티셔닝의 차이</h2>
+<p>샤딩과 파티셔닝은 모두 데이터를 나누는 방법입니다. 그래서 두 개념이 자주 혼동됩니다. 특히 샤딩을 수평 파티셔닝의 한 종류로 설명하기도 합니다. 하지만 실무적인 관점에서는 다음과 같이 구분하는 편이 이해하기 쉽습니다.</p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>파티셔닝</th>
+<th>샤딩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>분할 위치</td>
+<td>주로 하나의 DB 내부</td>
+<td>여러 DB 서버</td>
+</tr>
+<tr>
+<td>목적</td>
+<td>큰 테이블 관리, 조회 최적화</td>
+<td>저장 용량과 쓰기 부하 분산</td>
+</tr>
+<tr>
+<td>애플리케이션 영향</td>
+<td>상대적으로 작음</td>
+<td>상대적으로 큼</td>
+</tr>
+<tr>
+<td>운영 난이도</td>
+<td>비교적 낮음</td>
+<td>높음</td>
+</tr>
+<tr>
+<td>주요 고민</td>
+<td>파티션 기준, 파티션 관리</td>
+<td>샤드 키, 라우팅, 리밸런싱</td>
+</tr>
+</tbody>
+</table>
+<p>파티셔닝은 DB 내부 최적화에 가깝습니다. 애플리케이션 입장에서는 여전히 하나의 테이블을 조회하는 것처럼 사용할 수 있는 경우가 많습니다. 반면 샤딩은 데이터가 여러 DB에 흩어지기 때문에 애플리케이션 구조와 운영 방식에도 영향을 줍니다.</p>
+<p>물론 실제 DB 제품이나 분산 DB 환경에서는 이 경계가 완전히 딱 떨어지지 않을 수 있습니다. 내부적으로 파티션을 여러 노드에 분산하는 DB도 있고, 샤딩을 프레임워크나 미들웨어가 대신 처리해주는 경우도 있습니다. 하지만 핵심은 같습니다. <strong>데이터를 나누면 성능 문제를 해결할 수 있지만, 그 대가로 복잡도가 증가합니다.</strong></p>
+<h2 id="언제-사용해야-할까" class="heading">언제 사용해야 할까?</h2>
+<p>파티셔닝과 샤딩은 성능 개선을 위한 강력한 도구지만, 처음부터 적용해야 하는 기술은 아닙니다. 오히려 너무 이르게 적용하면 불필요하게 시스템만 복잡해질 수 있습니다.</p>
+<p>먼저 확인해야 할 것은 정말 데이터 분할이 필요한 상황인지입니다. 인덱스가 적절히 설정되어 있는지, 쿼리가 비효율적으로 작성되어 있지 않은지, 캐시나 읽기 복제만으로 해결할 수 있는 문제는 아닌지 먼저 확인해야 합니다.</p>
+<p>그럼에도 테이블이 너무 커져서 관리가 어렵거나, 특정 범위의 데이터만 자주 조회하거나, 오래된 데이터를 주기적으로 삭제해야 한다면 파티셔닝을 고려할 수 있습니다. 예를 들어 로그, 주문 이력, 정산 데이터처럼 시간이 지날수록 계속 쌓이고 기간 단위로 조회되는 데이터는 파티셔닝과 잘 맞습니다.</p>
+<p>반면 하나의 DB가 저장 용량이나 쓰기 요청을 더 이상 감당하지 못하고, Scale Up만으로 해결하기 어렵다면 샤딩을 고려할 수 있습니다. 다만 샤딩은 적용 이후 되돌리기 어렵고 운영 복잡도가 크게 증가하기 때문에, 충분한 근거와 설계가 필요합니다.</p>
+<p>개인적으로는 다음 순서로 접근하는 것이 안전하다고 생각합니다.</p>
+<ol>
+<li>쿼리와 인덱스를 먼저 점검한다.</li>
+<li>읽기 부하가 문제라면 Replication과 Cache를 고려한다.</li>
+<li>테이블 크기와 관리가 문제라면 Partitioning을 고려한다.</li>
+<li>단일 DB의 저장 용량과 쓰기 처리량이 한계라면 Sharding을 고려한다.</li>
+</ol>
+<p>즉, 샤딩은 가장 먼저 꺼내야 하는 카드라기보다, 다른 방법으로는 단일 DB의 한계를 넘기 어려울 때 선택하는 카드에 가깝습니다.</p>
+<h2 id="결론" class="heading">결론</h2>
+<p>샤딩과 파티셔닝은 모두 커진 데이터를 나누기 위한 방법입니다. 파티셔닝은 하나의 큰 테이블을 더 작은 단위로 나눠 조회와 관리를 효율적으로 만드는 방식이고, 샤딩은 데이터를 여러 DB 서버에 분산해 단일 DB의 한계를 넘기 위한 방식입니다.</p>
+<p>두 방법 모두 성능 문제를 해결할 수 있지만, 공짜는 아닙니다. 데이터를 나누는 순간 어떤 기준으로 나눌지, 조회는 어떻게 할지, 데이터가 몰리면 어떻게 다시 나눌지 같은 새로운 문제가 생깁니다. 특히 샤딩은 애플리케이션 구조와 운영 방식에 큰 영향을 주기 때문에 충분히 신중하게 접근해야 합니다.</p>
+<p>결국 중요한 것은 기술 이름이 아니라 문제의 원인입니다. 조회 범위가 너무 넓은 것이 문제인지, 테이블 관리가 어려운 것이 문제인지, 쓰기 부하가 단일 DB에 몰리는 것이 문제인지 먼저 파악해야 합니다. 그 다음에야 파티셔닝이 필요한지, 샤딩이 필요한지 판단할 수 있습니다.</p>
+<p>무작정 DB를 나누는 것은 해결책이 아닙니다. 하지만 데이터가 커지는 방향과 서비스의 조회 패턴을 충분히 이해하고 있다면, 샤딩과 파티셔닝은 DB의 한계를 넘어서는 강력한 선택지가 될 수 있습니다.</p>
+<h2 id="출처" class="heading">출처</h2>
+<ul>
+<li><a href="https://www.postgresql.org/docs/current/ddl-partitioning.html" target="_blank" rel="noopener noreferer">Table Partitioning</a> - PostgreSQL 공식 문서</li>
+<li><a href="https://dev.mysql.com/doc/refman/8.4/en/partitioning.html" target="_blank" rel="noopener noreferer">Partitioning</a> - MySQL 공식 문서</li>
+<li><a href="https://www.mongodb.com/docs/manual/sharding/" target="_blank" rel="noopener noreferer">Sharding</a> - MongoDB 공식 문서</li>
+<li><a href="https://aws.amazon.com/blogs/database/sharding-with-amazon-relational-database-service/" target="_blank" rel="noopener noreferer">Sharding with Amazon Relational Database Service</a> - AWS Database Blog</li>
+</ul>]]>
+    </content:encoded>
+  </item><item>
+    <title><![CDATA[Tomcat과 함께하는 API 성능 개선기]]></title>
+    <link>https://blog.hangilog.kr/tomcat-performance</link>
+    <pubDate>2025-05-07</pubDate>
+    <guid isPermaLink="false">https://blog.hangilog.kr/tomcat-performance</guid>
+    <description>
+    <![CDATA[maxThreads, maxConnections, acceptCount]]>
+    </description>
+    <content:encoded>
+      <![CDATA[<h2 id="모호했던-성능-지표들" class="heading">모호했던 성능 지표들</h2>
+<p>우아한테크코스에서 참여했던 <a href="https://touroot.kr" target="_blank" rel="noopener noreferer">투룻</a> 프로젝트는 첫 배포 당시만 해도 명확한 성능 지표라 할 만한 것이 없었습니다. 테스트가 모두 끝나는 시간, Gradle 빌드 완료 시간, 쿼리 실행 계획(Query Execution Plan)을 통한 쿼리 수행 속도 등이 전부였습니다.</p>
+<p>작은 규모의 프로젝트에서는 이 정도로도 충분하다고 생각할 수 있습니다. 하지만 투룻 팀은 사용자 급증으로 인한 장애 상황을 사전에 방지하고자 더 명확하고 정량적인 지표를 원했습니다. 당연하게도 지표가 제한적이고 모호하니, 성능 개선 방식도 테스트 리팩터링, Gradle 캐싱, 쿼리 튜닝 정도로 국한될 수밖에 없었습니다.</p>
+<p>투룻 서비스의 성능 지표를 측정하기에 앞서, 소프트웨어 성능을 나타내는 주요 지표들에 대해 조사했습니다. 대표적으로 <strong>처리량</strong>(Throughput)과 <strong>응답 시간</strong>(Response Time)이 있습니다. 이 두 개념을 간단히 정리하면 다음과 같습니다.</p>
+<ul>
+<li><strong>처리량</strong>(Throughput): 단위 시간당 처리되는 작업의 수</li>
+<li><strong>응답 시간</strong>(Response Time): 사용자 요청에 대한 시스템의 평균 응답 시간</li>
+</ul>
+<p>투룻 팀은 이 중에서도 처리량 지표에 주목했습니다. 응답 시간의 경우, 쿼리 튜닝 과정에서 서비스에 사용되는 쿼리를 <a href="https://shelled-operation-d0b.notion.site/0663024d6b32465ebee659f98bd3a0bf?pvs=74" target="_blank" rel="noopener noreferer">전수 조사</a>하고 자주 조회될 가능성이 높은 컬럼에 인덱스를 설정하는 등의 최적화를 이미 진행했기 때문에, 어느 정도 확보되었다고 판단했습니다.</p>
+<h2 id="tps-분석" class="heading">TPS 분석</h2>
+<p>가장 먼저 투룻 서비스의 처리량 지표를 파악하기 위해 <strong>TPS</strong>(Transactions Per Second)를 측정하기로 했습니다. TPS는 1초에 처리되는 트랜잭션 수를 의미하며, 공식은 다음과 같습니다.</p>
+<p>$$
+\text{TPS} = \frac{\text{총 트랜잭션 수}}{\text{단위 시간}}
+$$</p>
+<p>하지만 당시 투룻 서비스는 사용자 수가 많지 않아, 유의미한 TPS 수치를 얻기 어려운 상황이었습니다. 이에 투룻 팀은 유사 서비스들의 MAU(Monthly Active Users)를 참고하여 적정 TPS를 추정하기로 했습니다.</p>
+<p>다음은 그 추정 과정입니다.</p>
+<blockquote>
+<p><strong>목표 TPS 추정</strong>
+비슷한 서비스의 MAU를 분석해서 TPS 추정하자.</p>
+<ul>
+<li>유사 서비스의 MAU가 약 47만
+<ul>
+<li>한 달에 약 47만 명의 유저 → 하루에 약 16000명의 유저</li>
+<li>16000명이 하루에 6시간 동안 몇 개의 요청을 보낼까?<br>
+→ 24시간 동안 균일하게 요청이 오진 않을 것.
+→ 피크 타임 6시간으로 가정
+→ 하루에 1명이 30개 정도의 요청을 보낼 것으로 예상
+필터링 API + 메인 페이지 API + 상세 조회 API</li>
+</ul>
+⇒ 16000 * 30 / (6 * 3600) = 22
+<strong>⇒ 사용자가 1초에 우리 서비스에 보내는 TPS가 22일 것으로 추정한다.</strong></li>
+</ul>
+</blockquote>
+<h2 id="tomcat-설정값-변경과-jmeter를-통한-성능-테스트" class="heading">Tomcat 설정값 변경과 JMeter를 통한 성능 테스트</h2>
+<p>목표 TPS가 설정되었으니, 현재 우리 서비스의 TPS가 이 기준에 부합하는지를 측정할 필요가 있었습니다. 즉, <strong>성능 테스트</strong>(Performance Test)를 수행해야 했습니다.</p>
+<p>성능 테스트 도구는 다양하지만, 투룻 팀은 학습 비용이 낮고 빠른 결과를 얻을 수 있는 <strong>Apache JMeter</strong>를 선택했습니다. (마감 일정의 압박도 있었습니다.)</p>
+<p>테스트 대상은 가장 핵심적인 기능이자 사용량이 많을 것으로 예상되는 다음 4개의 API였습니다.</p>
+<ul>
+<li>메인 페이지 조회</li>
+<li>메인 페이지 필터링</li>
+<li>여행기 상세 조회</li>
+<li>UUID를 통한 공유된 여행기 상세 조회</li>
+</ul>
+<p>예상과 달리, 단순한 쿼리 튜닝과 테스트 코드 최적화만으로도 이미 목표 TPS인 22를 훨씬 상회하는 결과가 나왔습니다. 동시에 1,000명의 사용자가 요청을 보내는 시나리오에서도 메인 페이지 API의 처리량은 다음과 같았습니다.</p>
+<table>
+<thead>
+<tr>
+<th>1차 측정</th>
+<th>2차 측정</th>
+<th>3차 측정</th>
+<th>4차 측정</th>
+<th>5차 측정</th>
+<th>평균</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>93.9</td>
+<td>109.9</td>
+<td>111.9</td>
+<td>109.1</td>
+<td>96.3</td>
+<td><strong>104.22</strong></td>
+</tr>
+</tbody>
+</table>
+<p>이미 목표 TPS를 초과했기 때문에, 단순히 처리량을 높이는 것보다 <strong>시스템 리소스를 최소로 사용하면서 동일하거나 더 나은 TPS를 유지하는 방향</strong>으로 전환했습니다.</p>
+<p>이에 따라 <strong>Tomcat의 설정값을 조정</strong>해보기로 했습니다. 여러 값을 조정해가며 반복적으로 테스트한 끝에 찾은 최적의 설정은 다음과 같습니다.</p>
+<ul>
+<li><code>maxThreads</code>: 20</li>
+<li><code>maxConnections</code>: 100</li>
+<li><code>acceptCount</code>: 50</li>
+</ul>
+<p>해당 설정 적용 후 JMeter를 통해 다시 성능 테스트를 진행했습니다. 결과는 다음과 같습니다.</p>
+<h3 id="메인-페이지-조회-성능-테스트">메인 페이지 조회 성능 테스트</h3>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>1차 측정</th>
+<th>2차 측정</th>
+<th>3차 측정</th>
+<th>4차 측정</th>
+<th>5차 측정</th>
+<th>평균</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>기본 설정</td>
+<td>93.9</td>
+<td>109.9</td>
+<td>111.9</td>
+<td>109.1</td>
+<td>96.3</td>
+<td><strong>104.22</strong></td>
+</tr>
+<tr>
+<td>튜닝 후</td>
+<td>121.0</td>
+<td>113.9</td>
+<td>121.4</td>
+<td>118.9</td>
+<td>105.5</td>
+<td><strong>116.14</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="메인-페이지-필터링-성능-테스트">메인 페이지 필터링 성능 테스트</h3>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>1차 측정</th>
+<th>2차 측정</th>
+<th>3차 측정</th>
+<th>4차 측정</th>
+<th>5차 측정</th>
+<th>평균</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>기본 설정</td>
+<td>104.1</td>
+<td>101.7</td>
+<td>96.7</td>
+<td>108.0</td>
+<td>102.1</td>
+<td><strong>102.52</strong></td>
+</tr>
+<tr>
+<td>튜닝 후</td>
+<td>125.0</td>
+<td>130.5</td>
+<td>125.0</td>
+<td>136.7</td>
+<td>131.4</td>
+<td><strong>129.72</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="여행기-상세-조회-성능-테스트">여행기 상세 조회 성능 테스트</h3>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>1차 측정</th>
+<th>2차 측정</th>
+<th>3차 측정</th>
+<th>4차 측정</th>
+<th>5차 측정</th>
+<th>평균</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>기본 설정</td>
+<td>102.5</td>
+<td>99.8</td>
+<td>91.2</td>
+<td>111.6</td>
+<td>99.0</td>
+<td><strong>100.82</strong></td>
+</tr>
+<tr>
+<td>튜닝 후</td>
+<td>115.0</td>
+<td>118.2</td>
+<td>122.5</td>
+<td>115.9</td>
+<td>100.5</td>
+<td><strong>114.42</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="uuid를-통한-공유된-여행기-상세-조회-성능-테스트">UUID를 통한 공유된 여행기 상세 조회 성능 테스트</h3>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>1차 측정</th>
+<th>2차 측정</th>
+<th>3차 측정</th>
+<th>4차 측정</th>
+<th>5차 측정</th>
+<th>평균</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>기본 설정</td>
+<td>105.5</td>
+<td>139.7</td>
+<td>118.0</td>
+<td>137.8</td>
+<td>124.1</td>
+<td><strong>125.02</strong></td>
+</tr>
+<tr>
+<td>튜닝 후</td>
+<td>148.9</td>
+<td>144.4</td>
+<td>152.2</td>
+<td>150.2</td>
+<td>143.6</td>
+<td><strong>147.86</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p>큰 폭은 아니지만, <strong>기존 Tomcat 설정값 대비 적은 리소스로도 확실한 성능 향상</strong>을 이뤄낼 수 있었습니다. 명확한 성능 지표를 기반으로 불필요한 자원 낭비를 줄였다는 점에서 의의가 큰 실험이었습니다.</p>
+<h2 id="결론" class="heading">결론</h2>
+<p>도구를 활용한 성능 테스트는 처음이었기에 시행착오도 많았지만, TPS라는 명확한 성능 지표를 확보한 덕분에 다양한 실험을 시도해볼 수 있었습니다.</p>
+<p>물론 이번 테스트는 고정된 사용자 수와 트래픽 조건을 기준으로 이루어졌기 때문에, 급격한 트래픽 증가와 같은 상황에는 다소 대비가 부족할 수 있습니다. 향후에는 <strong>부하 테스트</strong>(Stress Test)도 함께 진행해보는 것이 좋겠다고 생각합니다.</p>]]>
+    </content:encoded>
+  </item><item>
+    <title><![CDATA[Spring Data JPA와 쿼리]]></title>
+    <link>https://blog.hangilog.kr/spring-data-jpa-query</link>
+    <pubDate>2024-11-16</pubDate>
+    <guid isPermaLink="false">https://blog.hangilog.kr/spring-data-jpa-query</guid>
+    <description>
+    <![CDATA[JPA 쿼리 메소드의 함정]]>
+    </description>
+    <content:encoded>
+      <![CDATA[<blockquote>
+<p>이 글은 Spring Data JPA를 어느 정도 학습했거나 소규모 팀 프로젝트에서 사용해 본 "초보" Java 백엔드 개발자를 위한 글입니다.</p>
+</blockquote>
+<h2 id="1-spring-data-jpa의-함정" class="heading">1. Spring Data JPA의 함정</h2>
+<p>최근 몇 년간, 많은 백엔드 개발자가 DB를 다룰 때 ORM 기술을 활용했고, 그중에서도 Spring Data JPA를 많이 사용했습니다. JPA는 RDB와 객체 세상의 패러다임을 일치시켜 주었고, 과거의 여러 기술에 비해 훨씬 객체지향적으로 개발할 수 있게 되었습니다. HTTP의 DELETE 메소드를 활용하는 API를 떠올려봅시다. 다음과 같은 엔티티를 삭제하는 기능을 구현하려면 어떻게 해야 할까요?</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token annotation punctuation">@Entity</span>
+</span><span class="code-line"><span class="token keyword">public</span> <span class="token keyword">class</span> <span class="token class-name">Member</span> <span class="token punctuation">{</span>
+</span><span class="code-line">
+</span><span class="code-line">    <span class="token annotation punctuation">@Id</span>
+</span><span class="code-line">    <span class="token annotation punctuation">@GeneratedValue</span><span class="token punctuation">(</span>strategy <span class="token operator">=</span> <span class="token class-name">GenerationType</span><span class="token punctuation">.</span>IDENTITY<span class="token punctuation">)</span>
+</span><span class="code-line">    <span class="token keyword">private</span> <span class="token class-name">Long</span> id<span class="token punctuation">;</span>
+</span><span class="code-line">
+</span><span class="code-line">    <span class="token annotation punctuation">@Column</span><span class="token punctuation">(</span>nullable <span class="token operator">=</span> <span class="token boolean">false</span><span class="token punctuation">)</span>
+</span><span class="code-line">    <span class="token keyword">private</span> <span class="token class-name">String</span> nickname<span class="token punctuation">;</span>
+</span><span class="code-line">…
+</span><span class="code-line"><span class="token punctuation">}</span>
+</span></code></pre>
+<p>Spring Data JPA를 사용하면 SQL을 잘 몰라도 메소드 시그니처 단 한 줄로 삭제 기능을 완성할 수 있습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token annotation punctuation">@Repository</span>
+</span><span class="code-line"><span class="token keyword">public</span> <span class="token keyword">interface</span> <span class="token class-name">MemberRepository</span> <span class="token keyword">extends</span> <span class="token class-name">JpaRepository</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">Member</span><span class="token punctuation">,</span> <span class="token class-name">Long</span><span class="token punctuation">></span></span> <span class="token punctuation">{</span>
+</span><span class="code-line">
+</span><span class="code-line">    <span class="token keyword">void</span> <span class="token function">deleteByNickname</span><span class="token punctuation">(</span><span class="token class-name">String</span> nickname<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">…
+</span><span class="code-line"><span class="token punctuation">}</span>
+</span></code></pre>
+<p>정말 놀랍지 않나요? 어떤 쿼리가 생성되고 DB로 전송되는지, 어떤 과정을 통해 User 엔티티가 삭제되는지 전혀 몰라도 DB에서 데이터를 삭제할 수 있습니다. 쿼리를 직접 작성해야 했던 과거의 기술들에 비해 매우 편리한 기능입니다.</p>
+<p>JPA를 사용하면 DB에 저장된 데이터가 바로 Java 객체가 되고, 메소드 시그니처만으로도 쿼리가 생성되니 객체지향적 설계에 집중할 수밖에 없는 환경입니다. 그러나 여기엔 숨겨진 함정이 있습니다. 숙련된 개발자라면 그럴 일이 없겠지만, 저를 비롯한 초보 개발자들은 JPA가 어떤 쿼리를 만드는지 모른 채 사용했을 가능성이 높습니다. 간단한 기능이라면 크게 문제가 없을 수도 있습니다. 그런데, 비즈니스 로직이 조금만 복잡해지면 어떻게 될까요?</p>
+<p>제가 개발에 참여한 서비스인 “<a href="https://touroot.kr" target="_blank" rel="noopener noreferer">투룻</a>”팀에서도 프로덕션 배포를 한 후에야 정확히 어떤 쿼리가 만들어지는지 확인했을 정도였으니, 이제 막 학습을 시작한 백엔드 개발자는 놓치기 쉬운 부분이라고 생각합니다. 불확실함은 결국 어떤 위험이든 감수하겠다는 이야기입니다. 우리가 예상하기에 간단한 로직임에도 매우 방대한 양의 쿼리가 생성될 수도 있습니다. 이는 자칫 서비스 운용 중 중대한 장애로 이어질 수 있습니다.</p>
+<p>다시 위의 예제 코드로 돌아가 봅시다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token annotation punctuation">@Repository</span>
+</span><span class="code-line"><span class="token keyword">public</span> <span class="token keyword">interface</span> <span class="token class-name">MemberRepository</span> <span class="token keyword">extends</span> <span class="token class-name">JpaRepository</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">Member</span><span class="token punctuation">,</span> <span class="token class-name">Long</span><span class="token punctuation">></span></span> <span class="token punctuation">{</span>
+</span><span class="code-line">
+</span><span class="code-line">    <span class="token keyword">void</span> <span class="token function">deleteByNickname</span><span class="token punctuation">(</span><span class="token class-name">String</span> nickname<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">…
+</span><span class="code-line"><span class="token punctuation">}</span>
+</span></code></pre>
+<p>우리는 이 메소드처럼 쿼리도 한 줄이 생성될 것을 기대합니다. 불행하게도 이 메소드는 DELETE 쿼리 한줄을 작성하는 것에서 끝나지 않습니다. 삭제하려는 엔티티를 조건에 맞춰 DB에서 조회하기 위해 SELECT 쿼리를 생성하고, 조회된 데이터에 대해 DELETE 쿼리를 생성합니다. 분명 메소드 시그니처 그 어디에도 SELECT 쿼리가 생성된다는 단서는 없는데도 말이죠. 다음은 위의 메소드를 호출했을 때 실제로 생성되는 쿼리입니다.</p>
+<pre class="language-sql"><code class="language-sql code-highlight"><span class="code-line">Hibernate:
+</span><span class="code-line">    <span class="token keyword">select</span>
+</span><span class="code-line">        m1_0<span class="token punctuation">.</span>id<span class="token punctuation">,</span>
+</span><span class="code-line">        m1_0<span class="token punctuation">.</span>nickname
+</span><span class="code-line">    <span class="token keyword">from</span>
+</span><span class="code-line">        member m1_0
+</span><span class="code-line">    <span class="token keyword">where</span>
+</span><span class="code-line">        m1_0<span class="token punctuation">.</span>nickname<span class="token operator">=</span>?
+</span><span class="code-line">Hibernate:
+</span><span class="code-line">    <span class="token keyword">delete</span>
+</span><span class="code-line">    <span class="token keyword">from</span>
+</span><span class="code-line">        member
+</span><span class="code-line">    <span class="token keyword">where</span>
+</span><span class="code-line">        id<span class="token operator">=</span>?
+</span></code></pre>
+<p>백엔드 개발자라면 한 번쯤 들어봤을 성능 저하의 주범, N+1 문제가 발생했습니다. 이는 JPA의 치명적인 함정 중 한가지에 불과합니다.</p>
+<h2 id="2-jpa를-맹신하지-말아야-하는-이유" class="heading">2. JPA를 맹신하지 말아야 하는 이유</h2>
+<p>JPA는 어떤 쿼리가 생성될지 예측할 수 없는 점뿐만 아니라 여러 단점이 있습니다. 하지만, 메소드 이름만으로 원하는 쿼리를 작성하는 기능은 부정할 수 없는 매우 강력한 장점입니다. 실제로 간단한 쿼리를 활용할 것이 자명한 기능은 JPA의 쿼리 생성 기능을 적극 활용하는 편이 나을 수 있습니다.</p>
+<p>따라서 우리는 JPA의 쿼리 생성 기능은 포기할 수 없습니다. 그렇다면 JPA 쿼리 생성 기능의 함정들을 잘 알고 대처해야 합니다. 함께 JPA 쿼리 생성 기능의 함정과 그 대처법에 대해 알아봅시다.</p>
+<h3 id="복잡한-쿼리를-작성하기-어려움">복잡한 쿼리를 작성하기 어려움</h3>
+<p>우리가 프로젝트나 서비스 유지 보수 할 때는 매우 복잡한 쿼리를 다뤄야 할 때가 필연적으로 옵니다. 수많은 도메인이 동시에 연관관계를 갖기도 하고, 복잡한 조건을 만족하는 값을 찾아와야 할 때도 있습니다. 예를 들어, 다음과 같은 요구사항이 있다고 가정해 봅시다.</p>
+<blockquote>
+<p>성별이 남성이고, 특정 나이 이상이며, 거주하는 도시가 일치하고 서비스 가입일이 1년 이내인 모든 사용자를 조회합니다.</p>
+</blockquote>
+<p>DB에서 조건에 일치하는 쿼리를 생성하기 위해 작성한 JPA 쿼리 메소드는 다음과 같습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">Member</span><span class="token punctuation">></span></span> <span class="token function">findByGenderAndAgeGreaterThanAndCityAndCreatedAtAfter</span><span class="token punctuation">(</span><span class="token class-name">String</span> gender<span class="token punctuation">,</span> <span class="token keyword">int</span> age<span class="token punctuation">,</span> <span class="token class-name">String</span> city<span class="token punctuation">,</span> <span class="token class-name">LocalDate</span> oneYearBefore<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span></code></pre>
+<p>길고 복잡하며 한 번에 이해하기 어려운 메소드 이름이 작성되었습니다. 이렇게 JPA의 쿼리 생성 기능만 활용하면 복잡한 조건의 쿼리를 작성하기 어려워집니다. 오타가 발생하기도 쉽고 유지 보수하기도 어렵습니다. 만약 조건이 추가된다면 메소드 이름은 더 길어지고 매개변수도 늘어날 것입니다. 쿼리만 수정한다면 코드는 아무런 변경이 없었을 텐데 말이죠.</p>
+<h3 id="컴파일-시점에-쿼리-오류를-찾을-수-없음">컴파일 시점에 쿼리 오류를 찾을 수 없음</h3>
+<p>Spring Data JPA는 애플리케이션 실행 시점에 메소드 이름을 분석하고 쿼리를 생성합니다. 그 말인즉, 메소드 이름에 쿼리적인 오류가 있어도 컴파일 시점에 발견할 수 없다는 것입니다. 다음과 같은 메소드를 작성했다고 가정해 봅시다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">Member</span><span class="token punctuation">></span></span> <span class="token function">findByGenderAndAgeGreaterThen</span><span class="token punctuation">(</span><span class="token class-name">String</span> gender<span class="token punctuation">,</span> <span class="token keyword">int</span> age<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span></code></pre>
+<p>이 메소드의 마지막 조건인 <code>GreaterThen</code>은 오타입니다. 하지만 컴파일 시점에 이 오타가 잘못된 쿼리인지 알 수 없습니다. 실행 시간에 발생하는 오류는 따로 테스트 코드를 작성하지 않는 이상, 사용자가 해당 기능을 사용하기 전까진 알 수 없는 지뢰와 다름없습니다. 충분한 QA와 테스트 코드를 통해 해결할 수 있는 문제라고 하지만, 사람은 항상 실수할 수밖에 없고 시한폭탄을 달고 개발하는 것과 다름없습니다.</p>
+<h3 id="필요한-컬럼만-조회할-수-없음">필요한 컬럼만 조회할 수 없음</h3>
+<p>쿼리 생성 기능을 활용하면 기본적으로 엔티티의 모든 컬럼을 조회합니다. 근데, 모든 컬럼을 조회하는 게 왜 문제일까요? 예제를 통해 그 이유를 살펴보겠습니다.</p>
+<p>특정 나이 이상의 사용자의 이름을 조회하는 기능을 구현하려면 다음과 같은 쿼리가 생성되어야 합니다.</p>
+<pre class="language-sql"><code class="language-sql code-highlight"><span class="code-line"><span class="token keyword">SELECT</span> name <span class="token keyword">FROM</span> member <span class="token keyword">WHERE</span> age <span class="token operator">></span> ?<span class="token punctuation">;</span>
+</span></code></pre>
+<p>하지만 JPA 쿼리 생성 기능을 활용할 때는 다음과 같은 메소드를 작성하게 되고,</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">String</span><span class="token punctuation">></span></span> <span class="token function">findByAgeGreaterThan</span><span class="token punctuation">(</span><span class="token keyword">int</span> age<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span></code></pre>
+<p>이 메소드는 다음과 같은 쿼리를 생성합니다.</p>
+<pre class="language-sql"><code class="language-sql code-highlight"><span class="code-line"><span class="token keyword">SELECT</span> <span class="token operator">*</span> <span class="token keyword">FROM</span> member <span class="token keyword">WHERE</span> age <span class="token operator">></span> ?<span class="token punctuation">;</span>
+</span></code></pre>
+<p>기능 자체는 두 쿼리 모두 정상적으로 동작합니다. 조건에 맞는 사용자의 정보를 가져올 테니까요. 그런데, 컬럼이 많아지면 이야기가 달라집니다.</p>
+<p>DB에서 데이터를 조회할 때는 기본적으로 디스크 I/O를 비롯한 다양한 하드웨어적인 작업이 이루어집니다. 당연하게도 컬럼이 많아질수록 조회 시 디스크 I/O도 비례해서 증가합니다. 거기다 모든 컬럼의 데이터를 가지고 있는 엔티티 객체가 생성되기 때문에 메모리 부하도 높아집니다. 이런 이유로 조회 API 호출 때마다 모든 컬럼을 조회하면 성능 저하가 발생할 수밖에 없습니다.</p>
+<p>물론, 컬럼이 많지 않다면 모든 컬럼을 조회해 온 다음에 필요한 컬럼만 따로 추출해도 무방합니다. 하지만, 시간이 지날수록 요구 사항에 따라 엔티티의 컬럼은 매우 많아질 수 있기 때문에 다른 방법도 고려해 봐야 합니다.</p>
+<h3 id="조건에-따른-삭제나-수정에는-부가-쿼리가-발생함">조건에 따른 삭제나 수정에는 부가 쿼리가 발생함</h3>
+<p>앞서 설명했던 것처럼 쿼리 생성 기능을 사용하여 삭제나 수정 기능을 구현할 때, Spring Data JPA는 먼저 데이터를 조회합니다. 이에 따라 예상치 못한 추가 쿼리가 발생하여 성능 저하가 일어날 수 있습니다.</p>
+<p>예를 들어, 다음과 같은 삭제 메소드를 정의했다고 가정해 봅시다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token keyword">void</span> <span class="token function">deleteByEmail</span><span class="token punctuation">(</span><span class="token class-name">String</span> email<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span></code></pre>
+<p>위의 메소드는 아래와 같은 쿼리를 생성합니다.</p>
+<pre class="language-sql"><code class="language-sql code-highlight"><span class="code-line"><span class="token keyword">SELECT</span> <span class="token operator">*</span> <span class="token keyword">FROM</span> member <span class="token keyword">WHERE</span> email <span class="token operator">=</span> ?
+</span><span class="code-line"><span class="token keyword">DELETE</span> <span class="token keyword">FROM</span> member <span class="token keyword">WHERE</span> id <span class="token operator">=</span> ?
+</span></code></pre>
+<p>대량의 데이터를 삭제하거나 수정해야 하는 경우, 이러한 방식은 성능 문제를 일으킬 수 있습니다. “쿼리 한 줄인데 무슨 성능 저하?”라고 생각할 수도 있지만, 쿼리 한 줄의 무게는 생각보다 무겁습니다. 하나의 쿼리가 DB로 전송되기 위해선, DB 연결을 맺고, I/O 작업을 수행하는 등, 전혀 가볍지 않은 과정을 거쳐야 합니다. 즉, 불필요한 부가 쿼리는 발생시키지 않는 것이 최선입니다.</p>
+<h2 id="3-쿼리-생성-기능을-대체하는-방법" class="heading">3. 쿼리 생성 기능을 대체하는 방법</h2>
+<p>그럼, 이런 JPA의 한계를 극복하려면 어떻게 해야 할까요? 여러 가지 방법이 있지만 가장 많이 사용되는 두 가지 방법을 살펴보겠습니다.</p>
+<h3 id="query">@Query</h3>
+<p>Spring Data JPA의 <code>@Query</code> 어노테이션을 사용하면 개발자가 직접 JPQL(Java Persistence Query Language)과 네이티브 쿼리를 직접 작성할 수 있습니다. 이 방법을 사용하면 JPA 쿼리 생성 기능의 한계를 극복하고 더 복잡하고 유연한 쿼리를 작성할 수 있습니다.</p>
+<p>예를 들어, 특정 나이 이상의 어떤 도시에 사는 사용자의 이메일과 이름 정보를 조회하는 기능을 구현한다고 가정해 봅시다. <code>@Query</code> 어노테이션으로 다음과 같이 구현할 수 있습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token annotation punctuation">@Query</span><span class="token punctuation">(</span><span class="token string">"SELECT new kr.hangilog.examplecodes.dto.MemberInfoDto(m.id, m.email, m.name) FROM Member m WHERE m.age > :age AND m.city = :city"</span><span class="token punctuation">)</span>
+</span><span class="code-line"><span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">MemberInfoDto</span><span class="token punctuation">></span></span> <span class="token function">findMemberInfo</span><span class="token punctuation">(</span><span class="token annotation punctuation">@Param</span><span class="token punctuation">(</span><span class="token string">"age"</span><span class="token punctuation">)</span> <span class="token keyword">int</span> age<span class="token punctuation">,</span> <span class="token annotation punctuation">@Param</span><span class="token punctuation">(</span><span class="token string">"city"</span><span class="token punctuation">)</span> <span class="token class-name">String</span> city<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span></code></pre>
+<p><code>@Query</code> 어노테이션을 통해 JPA 쿼리 생성 기능의 여러 문제를 해결했습니다.</p>
+<ol>
+<li>메소드 이름에 복잡한 조건이 포함되지 않아도 원하는 쿼리를 만들 수 있습니다.</li>
+<li>엔티티에서 원하는 컬럼만 조회할 수 있습니다.</li>
+<li>애플리케이션 실행 시점에 JPQL을 SQL로 파싱하기 때문에 쿼리 문법 오류를 확인할 수 있습니다.</li>
+</ol>
+<p>하지만 이렇게 편리한 <code>@Query</code> 어노테이션에도 몇 가지 문제가 있습니다.</p>
+<ol>
+<li>원하는 컬럼만 조회했을 때, 데이터를 매핑하고자 하는 객체의 패키지 레퍼런스를 작성해야 합니다.</li>
+<li>동적 쿼리를 작성할 수 없습니다.</li>
+</ol>
+<p>물론, 그럼에도 JPA의 쿼리 생성 기능보다는 훨씬 유지 보수하기 쉽습니다. 복잡한 쿼리를 메소드 이름을 통해 생성하는 것보단 쿼리를 작성하는 편이 훨씬 이해하기 쉽기 때문입니다. 실제로 실무에서도 메소드 이름을 간단하게 작성하고 대부분 <code>@Query</code> 어노테이션을 활용한다고 합니다.</p>
+<h3 id="querydsl">QueryDSL</h3>
+<p>QueryDSL은 타입 안전한 쿼리를 작성할 수 있게 해주는 프레임워크입니다. QueryDSL은 Spring Boot에서 제공하는 기능이 아니기 때문에 사용하려면 먼저 프로젝트에 QueryDSL 의존성을 추가해야 합니다. 위에서 구현했던 특정 나이 이상의 어떤 도시에 사는 사용자의 이메일과 이름 정보를 조회하는 기능은 다음과 같이 구현할 수 있습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token keyword">public</span> <span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">User</span><span class="token punctuation">></span></span> <span class="token function">findUsersByEmailAndName</span><span class="token punctuation">(</span><span class="token class-name">String</span> email<span class="token punctuation">,</span> <span class="token class-name">String</span> name<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line">    <span class="token class-name">QUser</span> user <span class="token operator">=</span> <span class="token class-name">QUser</span><span class="token punctuation">.</span>user<span class="token punctuation">;</span>
+</span><span class="code-line">    <span class="token keyword">return</span> queryFactory
+</span><span class="code-line">        <span class="token punctuation">.</span><span class="token function">selectFrom</span><span class="token punctuation">(</span>user<span class="token punctuation">)</span>
+</span><span class="code-line">        <span class="token punctuation">.</span><span class="token function">where</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span>email<span class="token punctuation">.</span><span class="token function">eq</span><span class="token punctuation">(</span>email<span class="token punctuation">)</span>
+</span><span class="code-line">            <span class="token punctuation">.</span><span class="token function">and</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span>name<span class="token punctuation">.</span><span class="token function">eq</span><span class="token punctuation">(</span>name<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</span><span class="code-line">        <span class="token punctuation">.</span><span class="token function">fetch</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line"><span class="token punctuation">}</span>
+</span></code></pre>
+<p>이렇게 보면 JPA 쿼리 생성 기능에 비해 훨씬 복잡하다고 생각할 수 있지만, QueryDSL의 진가는 동적 쿼리 작성에서 두드러집니다.</p>
+<p>예를 들어, 사용자를 이메일, 이름, 나이에 따라 동적으로 조회하는 기능을 구현한다고 가정해 봅시다. 또한, 각 조건은 추가될 수도, 그렇지 않을 수도 있습니다. 온전히 사용자에 의해 조건이 결정된다고 했을 때, QueryDSL을 활용하면 다음과 같이 쿼리를 작성할 수 있습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token keyword">public</span> <span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">User</span><span class="token punctuation">></span></span> <span class="token function">findUsers</span><span class="token punctuation">(</span><span class="token class-name">String</span> email<span class="token punctuation">,</span> <span class="token class-name">String</span> name<span class="token punctuation">,</span> <span class="token class-name">Integer</span> age<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line">    <span class="token class-name">QUser</span> user <span class="token operator">=</span> <span class="token class-name">QUser</span><span class="token punctuation">.</span>user<span class="token punctuation">;</span>
+</span><span class="code-line">    <span class="token class-name">BooleanBuilder</span> builder <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">BooleanBuilder</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">
+</span><span class="code-line">    <span class="token keyword">if</span> <span class="token punctuation">(</span>email <span class="token operator">!=</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line">        builder<span class="token punctuation">.</span><span class="token function">and</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span>email<span class="token punctuation">.</span><span class="token function">eq</span><span class="token punctuation">(</span>email<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">    <span class="token punctuation">}</span>
+</span><span class="code-line">    <span class="token keyword">if</span> <span class="token punctuation">(</span>name <span class="token operator">!=</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line">        builder<span class="token punctuation">.</span><span class="token function">and</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span>name<span class="token punctuation">.</span><span class="token function">eq</span><span class="token punctuation">(</span>name<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">    <span class="token punctuation">}</span>
+</span><span class="code-line">    <span class="token keyword">if</span> <span class="token punctuation">(</span>age <span class="token operator">!=</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line">        builder<span class="token punctuation">.</span><span class="token function">and</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span>age<span class="token punctuation">.</span><span class="token function">gt</span><span class="token punctuation">(</span>age<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">    <span class="token punctuation">}</span>
+</span><span class="code-line">
+</span><span class="code-line">    <span class="token keyword">return</span> queryFactory
+</span><span class="code-line">        <span class="token punctuation">.</span><span class="token function">selectFrom</span><span class="token punctuation">(</span>user<span class="token punctuation">)</span>
+</span><span class="code-line">        <span class="token punctuation">.</span><span class="token function">where</span><span class="token punctuation">(</span>builder<span class="token punctuation">)</span>
+</span><span class="code-line">        <span class="token punctuation">.</span><span class="token function">fetch</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line"><span class="token punctuation">}</span>
+</span></code></pre>
+<p><code>@Query</code> 어노테이션이나 JPA 쿼리 생성 기능을 활용하려 했다면, 각 조건에 맞춰 메소드를 여러 개 작성해야 했을 것입니다. 선택적 조건이 늘어나면 늘어날수록 메소드도 더 많이 작성해야 했겠죠.</p>
+<p>QueryDSL의 장점을 정리하자면 다음과 같습니다.</p>
+<ol>
+<li>컴파일 과정에서 쿼리 오류를 발견할 수 있습니다.</li>
+<li>타입 안전한 쿼리를 작성할 수 있습니다.</li>
+<li>동적 쿼리를 쉽게 작성할 수 있습니다.</li>
+<li>IDE의 자동 완성 기능을 활용할 수 있습니다.</li>
+</ol>
+<p>하지만 QueryDSL도 단점이 있습니다.</p>
+<ol>
+<li>초기 설정이 복잡합니다.</li>
+<li>문법에 대한 추가적인 학습이 필요합니다.</li>
+<li>프로젝트 빌드 시간이 늘어날 수 있습니다.</li>
+</ol>
+<p>아무래도 QueryDSL만의 문법과 여러 클래스, 메소드를 추가로 학습해야 하는 점이 가장 큰 난관입니다. 하지만, 이런 초기 과정만 무난하게 넘길 수 있다면 정말 강력한 장점을 가진다고 생각합니다. 동적 쿼리를 Java 코드로 작성할 수 있다는 것만으로 개발자에겐 이보다 편리한 기술이 없습니다.</p>
+<h2 id="4-그래서-어떤-방법을-활용해야-할까" class="heading">4. 그래서 어떤 방법을 활용해야 할까?</h2>
+<p>지금까지 살펴본 각 방법은 확고한 장단점이 있습니다. <code>@Query</code> 어노테이션과 QueryDSL 어느 쪽도 정답은 아닙니다. 따라서 우린 상황에 맞는 적절한 방법을 선택해야 합니다. 제가 생각한 각 방법에 어울리는 상황은 다음과 같습니다.</p>
+<h3 id="간단하고-예상하기-쉬운-쿼리를-작성해야-할-때">간단하고 예상하기 쉬운 쿼리를 작성해야 할 때</h3>
+<p>정말 간단해서 쿼리가 예상되는 기능에는 JPA의 쿼리 생성 기능을 활용하는 게 좋습니다. 예를 들어 다음과 같이 이메일을 기준으로 사용자를 조회하는 기능은 JPA의 쿼리 생성 기능을 사용하면 훨씬 직관적이고 빠르게 구현할 수 있습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token class-name">Member</span> <span class="token function">findByEmail</span><span class="token punctuation">(</span><span class="token class-name">String</span> email<span class="token punctuation">)</span>
+</span></code></pre>
+<h3 id="복잡하지만-정적인-쿼리를-작성해야-할-때">복잡하지만 정적인 쿼리를 작성해야 할 때</h3>
+<p>조건이 많아 복잡하지만, 동적으로 변화하진 않는 쿼리를 작성해야 하는 상황에선 <code>@Query</code> 어노테이션을 사용하는 것이 좋습니다. 예를 들어, 이메일과 나이를 기준으로 사용자를 조회하는 기능은 다음과 같이 구현할 수 있습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token annotation punctuation">@Query</span><span class="token punctuation">(</span><span class="token string">"SELECT m FROM Member m WHERE m.email = :email AND m.age > :age"</span><span class="token punctuation">)</span>
+</span><span class="code-line"><span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">Member</span><span class="token punctuation">></span></span> <span class="token function">findMembers</span><span class="token punctuation">(</span><span class="token annotation punctuation">@Param</span><span class="token punctuation">(</span><span class="token string">"email"</span><span class="token punctuation">)</span> <span class="token class-name">String</span> email<span class="token punctuation">,</span> <span class="token annotation punctuation">@Param</span><span class="token punctuation">(</span><span class="token string">"age"</span><span class="token punctuation">)</span> <span class="token keyword">int</span> age<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span></code></pre>
+<p>이렇게 쿼리를 직접 작성하게 되면 복잡한 조건에 비해 메소드 시그니처가 단순해지고, 어떤 쿼리를 사용하는지 명확하게 파악할 수 있습니다. 거기다, 쿼리 성능 튜닝도 가능하니 복잡한 조건의 조회 기능에선 JPA의 쿼리 생성 기능보다 유리한 점이 많습니다. 물론, QueryDSL로도 구현 가능하지만, 동적 쿼리가 활용될 여지가 없다면 빠르게 쿼리만 작성해도 되는 <code>@Query</code> 어노테이션을 사용하는게 효율적이라고 생각합니다.</p>
+<h3 id="복잡하고-동적인-쿼리를-작성해야-할-때">복잡하고 동적인 쿼리를 작성해야 할 때</h3>
+<p>조건도 복잡하고, 동적으로 변화하는 쿼리를 작성해야 하면 QueryDSL을 도입해 보는 게 좋습니다. 예를 들어, 이메일과 나이에 따라 사용자 정보를 조회하는 기능을 구현한다고 가정해봅시다. 이때, 이메일과 나이 조건은 사용자가 추가하거나 제거할 수 있는 동적 조건이라면, QueryDSL을 사용해 간단하게 구현할 수 있습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token keyword">public</span> <span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">Member</span><span class="token punctuation">></span></span> <span class="token function">findMembers</span><span class="token punctuation">(</span><span class="token class-name">String</span> email<span class="token punctuation">,</span> <span class="token class-name">Integer</span> age<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line">    <span class="token class-name">BooleanBuilder</span> builder <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">BooleanBuilder</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">    <span class="token keyword">if</span> <span class="token punctuation">(</span>email <span class="token operator">!=</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line">        builder<span class="token punctuation">.</span><span class="token function">and</span><span class="token punctuation">(</span>member<span class="token punctuation">.</span>email<span class="token punctuation">.</span><span class="token function">eq</span><span class="token punctuation">(</span>email<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">    <span class="token punctuation">}</span>
+</span><span class="code-line">    <span class="token keyword">if</span> <span class="token punctuation">(</span>age <span class="token operator">!=</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+</span><span class="code-line">        builder<span class="token punctuation">.</span><span class="token function">and</span><span class="token punctuation">(</span>member<span class="token punctuation">.</span>age<span class="token punctuation">.</span><span class="token function">gt</span><span class="token punctuation">(</span>age<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line">    <span class="token punctuation">}</span>
+</span><span class="code-line">    <span class="token keyword">return</span> queryFactory<span class="token punctuation">.</span><span class="token function">selectFrom</span><span class="token punctuation">(</span>member<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">where</span><span class="token punctuation">(</span>builder<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">fetch</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span><span class="code-line"><span class="token punctuation">}</span>
+</span></code></pre>
+<p><code>@Query</code> 쿼리로는 위와 같은 기능을 구현하는 데는 한계가 있습니다. 위의 기능을 <code>@Query</code>로 구현한다면 다음과 같이 작성할 수 있습니다.</p>
+<pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token annotation punctuation">@Query</span><span class="token punctuation">(</span><span class="token string">"SELECT m FROM Member m "</span> <span class="token operator">+</span>
+</span><span class="code-line">       <span class="token string">"WHERE (:email IS NULL OR m.email = :email) "</span> <span class="token operator">+</span>
+</span><span class="code-line">       <span class="token string">"AND (:age IS NULL OR m.age > :age)"</span><span class="token punctuation">)</span>
+</span><span class="code-line"><span class="token class-name">List</span><span class="token generics"><span class="token punctuation">&#x3C;</span><span class="token class-name">Member</span><span class="token punctuation">></span></span> <span class="token function">findMembers</span><span class="token punctuation">(</span><span class="token annotation punctuation">@Param</span><span class="token punctuation">(</span><span class="token string">"email"</span><span class="token punctuation">)</span> <span class="token class-name">String</span> email<span class="token punctuation">,</span> <span class="token annotation punctuation">@Param</span><span class="token punctuation">(</span><span class="token string">"age"</span><span class="token punctuation">)</span> <span class="token class-name">Integer</span> age<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</span></code></pre>
+<p>만약, 조건이 추가된다면 JPQL이 더 길어지고 이해하기 어려워질 수 있습니다.</p>
+<h2 id="5-마치며" class="heading">5. 마치며.</h2>
+<p>지금까지 Spring Data JPA의 여러 위험 요소와 대처 방법에 대해서 알아봤습니다. 이 글을 읽은 모든 분이 기억하셔야 할 것은 "모든 선택에는 정답이 없다."는 것입니다. 내가 속한 팀이 현재 처한 상황이나 서비스의 복잡도, 데이터의 크기 등의 여러 요인으로 제가 설명한 방법들이 오히려 비효율적일 수 있습니다. 동적 쿼리가 필요하지도 않은 상황에서의 QueryDSL 도입은 팀원들의 학습 부담을 증가시킬 뿐입니다.</p>
+<p>또한, Spring Data JPA를 사용할 때는 항상 생성되는 실제 쿼리를 확인하는 습관을 들여야 합니다. 이를 통해 예상치 못한 성능 이슈를 조기에 발견하고 해결할 수 있기 때문입니다. 부가적인 쿼리가 발생하지는 않는지, 너무 많은 서브 쿼리가 작성되진 않았는지, 의도한 대로 잘 동작하는지 항상 확인해야 합니다. 잘못 작성된 쿼리 한 줄이 불러올 재앙은 상상 이상일 수 있습니다. DELETE 쿼리에 WHERE 조건을 빼먹었다고 상상해 봅시다. 저는 숨도 제대로 쉬지 못할 것 같습니다.</p>
+<p>Java 코드만 잘 짠다고 해서 좋은 Spring 백엔드 개발자가 될 수 없다고 생각합니다. 필연적으로 DB와 씨름하게 될 백엔드 개발자는 쿼리에 대해 잘 이해하고 있어야 하며, 쿼리의 처리 속도를 어떻게 해야 더 높일 수 있을지 고민해야 합니다. 예를 들어, 적절한 컬럼에 인덱스를 설정하면 같은 조회 쿼리여도 속도 차이는 수백 배까지 날 수 있습니다. 그래서 우리는 우리가 만든 서비스에서 사용되는 모든 쿼리를 잘 알고 있어야 합니다.</p>
+<p>이 글은 JPA의 편리함에 익숙해지는 것을 경계하고, 발생할 수 있는 여러 문제를 해결하기 위한 몇 가지 방법을 설명하고 있습니다. 상세한 쿼리 튜닝을 다루진 않지만, 초보 Spring 백엔드 개발자가 꼭 알아야 하는 내용이라고 생각합니다. 이 글을 읽는 모든 분이 맹목적으로 기술을 활용하지 않고, 항상 비판적인 자세로 "더 나은 방법은 없을까?"하고 고민해 주셨으면 좋겠습니다.</p>
+<h2 id="출처" class="heading">출처</h2>
+<ul>
+<li>자바 ORM 표준 JPA 프로그래밍 - 김영한 저</li>
+<li><a href="https://www.inflearn.com/roadmaps/149" target="_blank" rel="noopener noreferer">김영한의 스프링 부트와 JPA 실무 완전 정복 로드맵</a> - 김영한</li>
+<li><a href="https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html" target="_blank" rel="noopener noreferer">JPA Query Methods</a> - Spring 공식 문서</li>
+<li><a href="https://f-lab.kr/insight/database-index-principles-and-optimization-strategies" target="_blank" rel="noopener noreferer">데이터베이스 인덱스의 원리와 최적화 전략</a> - F-Lab</li>
+</ul>]]>
+    </content:encoded>
+  </item><item>
     <title><![CDATA[우아한테크코스 레벨1 - 체스]]></title>
     <link>https://blog.hangilog.kr/woowacourse-level1-mission4</link>
     <pubDate>2024-04-18</pubDate>
@@ -683,54 +1388,6 @@
 <p><a href="https://github.com/hangillee/java-baseball-6/tree/hangillee" target="_blank" rel="noopener noreferer">숫자 야구 게임 - hangillee</a></p>]]>
     </content:encoded>
   </item><item>
-    <title><![CDATA[값 타입]]></title>
-    <link>https://blog.hangilog.kr/value-type</link>
-    <pubDate>2023-07-13</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/value-type</guid>
-    <description>
-    <![CDATA[JPA의 또 다른 데이터 타입]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<!-- 10 -->
-<h2 id="엔티티-타입과-값-타입" class="heading">엔티티 타입과 값 타입</h2>
-<h2 id="기본-값-타입" class="heading">기본 값 타입</h2>
-<h2 id="임베디드-값-타입" class="heading">임베디드 값 타입</h2>
-<h2 id="값-타입과-불변-객체" class="heading">값 타입과 불변 객체</h2>
-<h2 id="값-타입의-비교" class="heading">값 타입의 비교</h2>
-<h2 id="값-타입-컬렉션" class="heading">값 타입 컬렉션</h2>]]>
-    </content:encoded>
-  </item><item>
-    <title><![CDATA[영속성 전이]]></title>
-    <link>https://blog.hangilog.kr/cascade</link>
-    <pubDate>2023-07-11</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/cascade</guid>
-    <description>
-    <![CDATA[모든 엔티티를 일일히 영속화 해야 할까?]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<!-- 09 -->
-<h2 id="영속성-전이" class="heading">영속성 전이</h2>
-<h2 id="영속성-전이-주의점" class="heading">영속성 전이 주의점</h2>
-<h2 id="고아-객체" class="heading">고아 객체</h2>
-<h2 id="영속성-전이와-고아-객체-그리고-생명-주기" class="heading">영속성 전이와 고아 객체, 그리고 생명 주기</h2>]]>
-    </content:encoded>
-  </item><item>
-    <title><![CDATA[지연 로딩과 즉시 로딩]]></title>
-    <link>https://blog.hangilog.kr/loading</link>
-    <pubDate>2023-07-10</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/loading</guid>
-    <description>
-    <![CDATA[데이터베이스 조회는 항상 조심해야 한다]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<!-- 08 -->
-<h2 id="지연-로딩-즉시-로딩" class="heading">지연 로딩? 즉시 로딩?</h2>
-<h2 id="지연-로딩이-필요한-경우" class="heading">지연 로딩이 필요한 경우</h2>
-<h2 id="즉시-로딩이-필요한-경우" class="heading">즉시 로딩이 필요한 경우</h2>
-<h2 id="프록시와-즉시-로딩-주의점" class="heading">프록시와 즉시 로딩 주의점</h2>
-<h2 id="로딩-활용법" class="heading">로딩 활용법</h2>]]>
-    </content:encoded>
-  </item><item>
     <title><![CDATA[프록시]]></title>
     <link>https://blog.hangilog.kr/proxy</link>
     <pubDate>2023-07-09</pubDate>
@@ -760,7 +1417,7 @@
 <h2 id="프록시란" class="heading">프록시란?</h2>
 <p><strong>프록시</strong>(Proxy)는 우리가 직접 다루는 실제 엔티티 클래스를 상속 받아서 생성되는 일종의 "<strong>가짜 객체</strong>"입니다. JPA의 구현체인 Hibernate의 내부 라이브러리가 자동으로 생성하며, 실제 엔티티 클래스를 상속받아서 만들어지기 때문에 당연하게도 실제 엔티티 클래스와 겉 모양이 같습니다. 이론상, 해당 엔티티를 사용하는 입장에서는 사용하는 객체가 진짜 객체인지 프록시 객체인지는 구분하지 않고 사용하면 됩니다.</p>
 <p>프록시 객체는 실제 객체를 대신해서 호출됩니다. 이런 특징 덕분에 <strong>DB 테이블 조회를 뒤로 미룰 수 있는 것</strong>입니다. 그렇다면 프록시는 어떻게 실제 객체를 대체할 수 있는 것일까요? 바로, <strong>프록시 객체가 실제 객체의 참조를 보관</strong>하고 있기 때문입니다.</p>
-<p>프록시 객체는 <a href="#%ED%94%84%EB%A1%9D%EC%8B%9C-%EC%B4%88%EA%B8%B0%ED%99%94">프록시 초기화</a> 과정에서 실제 객체를 가리키는 참조를 가지게되고 이를 통해 실제 객체의 필드나 메소드를 호출합니다. 이 과정을 **위임(Delegate)**이라고 하며, 프록시 객체는 자신이 가리키는 객체의 구성 요소들을 호출할 때만 해당 객체의 DB 테이블을 조회하거나 메소드 바디 내용을 읽어옵니다.</p>
+<p>프록시 객체는 <a href="#%ED%94%84%EB%A1%9D%EC%8B%9C-%EC%B4%88%EA%B8%B0%ED%99%94">프록시 초기화</a> 과정에서 실제 객체를 가리키는 참조를 가지게되고 이를 통해 실제 객체의 필드나 메소드를 호출합니다. 이 과정을 <strong>위임</strong>(Delegate)이라고 하며, 프록시 객체는 자신이 가리키는 객체의 구성 요소들을 호출할 때만 해당 객체의 DB 테이블을 조회하거나 메소드 바디 내용을 읽어옵니다.</p>
 <p>객체지향 프로그래밍의 특징 중 하나인 "<strong>객체는 객체 그래프를 자유롭게 탐색할 수 있어야 한다.</strong>"를 생각해보면, 하나의 엔티티를 조회할 때, 이와 연관된 엔티티를 모두 함께 조회해 객체 그래프를 생성해야 한다는 것을 알 수 있습니다. 그런데, 실제 엔티티들로 이루어진 객체 그래프를 생성하려면 엔티티들의 DB 테이블을 모두 조회해야합니다. 이렇게 되면 위에서 설명한 <strong>N+1 문제</strong>가 발생하는 것입니다.</p>
 <blockquote>
 <p>객체 그래프를 완성하기 위해 연관관계를 가지는 모든 엔티티를 조회하면 <strong>1개의 DB 테이블 조회 쿼리에 부가적인 N개의 조회 쿼리가 발생</strong>합니다. 즉, N+1 문제입니다.</p>
@@ -1485,20 +2142,6 @@
 </ul>]]>
     </content:encoded>
   </item><item>
-    <title><![CDATA[엔티티 매핑]]></title>
-    <link>https://blog.hangilog.kr/entity-mapping</link>
-    <pubDate>2023-07-05</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/entity-mapping</guid>
-    <description>
-    <![CDATA[JPA가 객체를 다루는 여러 방법들]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<!-- 03 -->
-<h2 id="객체와-테이블을-매핑하기" class="heading">객체와 테이블을 매핑하기</h2>
-<h2 id="데이터베이스-스키마-자동-생성" class="heading">데이터베이스 스키마 자동 생성</h2>
-<h2 id="다양한-매핑" class="heading">다양한 매핑</h2>]]>
-    </content:encoded>
-  </item><item>
     <title><![CDATA[영속성 관리]]></title>
     <link>https://blog.hangilog.kr/persistence-management</link>
     <pubDate>2023-07-04</pubDate>
@@ -1577,11 +2220,7 @@
 <p>바로, 아래서 설명할 <strong>1차 캐시</strong>가 <code>Map</code> 자료구조와 같이 영속 상태가 된 Entity를 <strong>Key-Value</strong> 형태로 저장하기 때문입니다. 1차 캐시는 영속성 컨텍스트의 알파이자 오메가라 할 수 있는데, 1차 캐시의 존재 덕분에 우리가 아래의 여러 장점들을 누릴 수 있습니다. 만약, 1차 캐시라는 개념 자체가 없었다면 JPA를 사용할 이유가 없었을지도 모릅니다.</p>
 <h3 id="1차-캐시">1차 캐시</h3>
 <p>영속성 컨텍스트가 Entity를 구분하기 위해 식별자를 사용하고, 1차 캐시가 Entity를 다루는 방식 때문에 꼭 식별자가 필요하다는 것도 알았습니다. 이제 1차 캐시가 정확히 무슨 역할을 담당하는지 알아보겠습니다.</p>
-<h3 id="동일성-보장">동일성 보장</h3>
-<h3 id="트랜잭션-지원-쓰기-지연">트랜잭션 지원 쓰기 지연</h3>
-<h3 id="변경-감지-dirty-checking">변경 감지 (Dirty Checking)</h3>
-<h3 id="지연-로딩-lazy-loading">지연 로딩 (Lazy Loading)</h3>
-<h2 id="플러시" class="heading">플러시</h2>]]>
+<p>작성 중.</p>]]>
     </content:encoded>
   </item><item>
     <title><![CDATA[정적 팩토리 메소드]]></title>
@@ -1673,19 +2312,7 @@
 </span><span class="code-line"><span class="token punctuation">}</span>
 </span></code></pre>
 <p>실제로 Java의 <code>Boolean</code>과 같이 한 번 생성된 인스턴스의 값이나 상태가 절대 변하지 않는 <strong>불변 클래스(immutable class)는</strong> 특정 값을 가진(<code>true</code>와 <code>false</code>) 인스턴스를 <strong>미리 만들어</strong>두고 이를 <strong>정적 팩토리 메소드를 통해 반환</strong>하는 방식으로 같은 값을 가지는 중복 인스턴스 생성을 방지합니다. 이 장점은 생산 비용이 큰 객체가 자주 요청되는 상황에 성능 향상에 도움이 됩니다.</p>
-<h2 id="정적-팩토리-메소드의-단점" class="heading">정적 팩토리 메소드의 단점</h2>
-<h2 id="정리" class="heading">정리</h2>]]>
-    </content:encoded>
-  </item><item>
-    <title><![CDATA[MVC Pattern]]></title>
-    <link>https://blog.hangilog.kr/mvc-pattern</link>
-    <pubDate>2023-07-04</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/mvc-pattern</guid>
-    <description>
-    <![CDATA[Java와 Servlet]]>
-    </description>
-    <content:encoded>
-      <![CDATA[]]>
+<p>작성 중.</p>]]>
     </content:encoded>
   </item><item>
     <title><![CDATA[Java의 ORM 표준 기술, JPA]]></title>
@@ -1857,18 +2484,6 @@
 </ul>]]>
     </content:encoded>
   </item><item>
-    <title><![CDATA[객체지향의 사실과 오해]]></title>
-    <link>https://blog.hangilog.kr/essence-oop</link>
-    <pubDate>2023-06-30</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/essence-oop</guid>
-    <description>
-    <![CDATA[역할, 책임, 협력 관점에서 본 객체지향]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<h2 id="객체지향의-사실과-오해" class="heading">객체지향의 사실과 오해</h2>
-<p>처음 소감을 남길 책은 '<strong>객체지향의 사실과 오해</strong>'입니다. 그렇게 두꺼운 책은 아니지만 꽤 긴 시간을 투자하며 여러번 읽었습니다. 이 책은 Java와 Spring 프레임워크를 공부하는 제게 너무나 중요한 개념인 '객체지향'이란 무엇인가를 쉽고 명확하게 설명합니다. 특히, 저를 포함한 많은 초보 개발자들이 가지고 있을 '객체지향은 <code>class</code>가 중심이다'라는 큰 오해를 완전히 뒤바꿔주는 강력한 책입니다.</p>]]>
-    </content:encoded>
-  </item><item>
     <title><![CDATA[GDSC SKHU 해커톤 in F-Lab]]></title>
     <link>https://blog.hangilog.kr/hackathon</link>
     <pubDate>2023-02-01</pubDate>
@@ -1899,17 +2514,6 @@
 <p>저는 지난 하반기 동안 GDSC의 코어 멤버로 활동하면서 일반 멤버들에게 Java, Spring, DB 관련 지식들을 공유하기 위해 열심히 공부했고, 덕분에 백엔드 개발과 서비스 배포 과정을 간단하게나마 홀로 해낼 수 있었습니다. 해커톤에 앞서 동아리원들끼리 진행한 미니 프로젝트까지 성공적으로 완성해 제 실력에 상당한 자신감을 가지고 있었습니다. 그러나, 넘쳐나던 자신감이 무색하게, 아직도 제가 갈길이 멀었다고 느낀 해커톤이었습니다.</p>
 <p>특히, Dokcer와 Github Actions를 통한 CI/CD 파이프라인 구축은 완전 처음 해보는 작업이어서 그런지 많은 시행착오를 겪었습니다. 결국 제대로 알지 못하고 사용한 탓에 프로젝트 제출 제한 시간까지 CI/CD 파이프라인은 원하는 대로 동작하지 않았습니다. 좋은 개발자를 꿈꾼다는 사람이 사실상 표준이 되어가는, 백엔드 개발자라면 잘 다뤄야만 하는 기술을 아직도 어려워한다는게 부끄러웠습니다. 대학생이라, 시간이 모자라서, 아직 그렇게 중요하지 않아서 같은 변명은 이제 전혀 통하지 않는 고학번이 되었고, 정말 변해야겠다는 생각이 강하게 들었습니다.</p>
 <p>그동안 저는 주변 사람들보다 조금 앞서 나갔다고 해서 절대 뛰어난 실력을 가진게 아닌데, 스스로 '이 정도 했으면 됐다'며 안주했고, 이번 해커톤에서 제 실력의 민낯을 보고 말았습니다. 구글링을 통해 구현하는 것도 제대로 못하는 제 자신에게 화도 나고 여러모로 실망스러웠습니다. 앞으로는 여러 외부 개발 활동에 참여해 최대한 많은 사람들과 다양한 경험을 해보고 제 실력의 척도를 객관화할 필요성을 느꼈습니다. 우물 안 개구리가 되어서는 절대 저의 목표인 "좋은 개발자"가 될 수 없을 것입니다. 여러모로 아쉬운 점이 많았지만 정말 얻어가는게 많았던 해커톤이었습니다.</p>]]>
-    </content:encoded>
-  </item><item>
-    <title><![CDATA[미니 프로젝트를 마치고]]></title>
-    <link>https://blog.hangilog.kr/miniproject</link>
-    <pubDate>2023-02-01</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/miniproject</guid>
-    <description>
-    <![CDATA[Spring을 본격적으로 공부하고 처음 진행한 프로젝트]]>
-    </description>
-    <content:encoded>
-      <![CDATA[]]>
     </content:encoded>
   </item><item>
     <title><![CDATA[빈 스코프]]></title>
@@ -2019,7 +2623,7 @@
 <ul>
 <li><strong>request</strong> : HTTP 요청이 들어오고 나갈 때까지 유지되는 스코프로 각각의 HTTP 요청마다 별도의 인스턴스를 생성 및 관리</li>
 <li><strong>session</strong> : HTTP의 Session과 동일한 생명주기를 가지는 스코프</li>
-<li><strong>application</strong> : **서블릿 컨텍스트(ServletContext)**와 동일한 생명주기를 가지는 스코프</li>
+<li><strong>application</strong> : <strong>서블릿 컨텍스트</strong>(ServletContext)와 동일한 생명주기를 가지는 스코프</li>
 <li><strong>websocket</strong> : 웹 소켓과 동일한 생명주기를 가지는 스코프</li>
 </ul>
 <p>웹 스코프도 프로토타입 스코프와 마찬가지로 인스턴스와 관련된 문제가 발생할 수 있습니다. 바로, 실제 사용자의 웹 요청이 있기 전까지는 웹 스코프 빈의 인스턴스가 생성되지 않아 필요한 인스턴스가 제대로 할당되지 않은 채 로직이 실행되는 문제입니다. 이 문제도 앞서 정리해본 <strong>Provider</strong>를 통해 해결할 수 있습니다. <code>ObjectProvider</code>는 <code>getObject()</code>와 같은 DL 메소드를 호출하는 시점까지 <strong>웹 스코프 빈의 생성을 지연할 수 있습니다.</strong></p>
@@ -2412,7 +3016,7 @@
 </span></code></pre>
 <p>이렇게 <code>@Configuration</code> 어노테이션을 통해 설정 클래스로 등록된 <code>AppConfig</code> 클래스는 Spring 컨테이너 생성 시 프로그램의 구성 정보로 활용됩니다. Spring은 <code>AppConfig</code>에 적혀진 대로 객체를 생성하고, 관리하며, 의존관계를 주입합니다. 다시 말해, <code>@Configuration</code> 어노테이션에 의해 설정 클래스로 등록된 <code>AppConfig</code> 클래스는, IoC를 통해 프로그램의 제어권을 가지게 된 Spring 컨테이너에게 해당 프로그램의 설명서 역할을 하는 것입니다. <code>AnnotationConfigApplicationContext</code> 클래스를 기반으로 Spring 컨테이너를 생성하기 위해선 <code>AppConfig</code>와 같은 설정 클래스가 필수입니다.</p>
 <h2 id="spring-빈" class="heading">Spring 빈</h2>
-<p>Spring 컨테이너는 생성될 때, 구성 정보로 등록한 설정 클래스(<code>@Configuration</code>이 붙은 클래스)에 작성되어 있는 객체들을 모두 생성해서 자기 자신에 등록합니다. 이때, 컨테이너에 등록된 객체들을 **빈(Bean)**이라고 합니다.</p>
+<p>Spring 컨테이너는 생성될 때, 구성 정보로 등록한 설정 클래스(<code>@Configuration</code>이 붙은 클래스)에 작성되어 있는 객체들을 모두 생성해서 자기 자신에 등록합니다. 이때, 컨테이너에 등록된 객체들을 <strong>빈</strong>(Bean)이라고 합니다.</p>
 <blockquote>
 <p>@Configuration 어노테이션 뿐만 아니라 @Component, @Controller 같은 어노테이션으로도 컨테이너에 빈 등록이 가능합니다! 각각 어노테이션들은 다른 포스트에서 설명하도록 하겠습니다.</p>
 </blockquote>
@@ -2766,35 +3370,6 @@ Stateful에서는 이전 요청에 대한 상태를 기억하고 있다. 그런�
 <p>start-line -> header -> (공백(CRLF)) -> message body</p>]]>
     </content:encoded>
   </item><item>
-    <title><![CDATA[인터넷 네트워크]]></title>
-    <link>https://blog.hangilog.kr/internet</link>
-    <pubDate>2023-01-18</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/internet</guid>
-    <description>
-    <![CDATA[웹 개발을 위한 인터넷 네트워크 기본 지식]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<p><strong>본 문서는 인프런에서 수강할 수 있는 <a href="https://www.inflearn.com/course/http-%EC%9B%B9-%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC" target="_blank" rel="noopener noreferer">모든 개발자를 위한 HTTP 웹 기본 지식</a>을 수강한 후, 공부한 내용을 정리한 문서입니다. 본 문서의 모든 저작권은 해당 강의의 저자이신 <a href="https://inflearn.com/users/@yh" target="_blank" rel="noopener noreferer">김영한</a> 우아한형제들 기술이사님께 있습니다.</strong></p>
-<h2 id="인터넷" class="heading">인터넷!</h2>
-<h2 id="ip" class="heading">IP</h2>
-<h2 id="tcp와-udp" class="heading">TCP와 UDP</h2>
-<h2 id="port" class="heading">PORT</h2>
-<h2 id="dns" class="heading">DNS</h2>]]>
-    </content:encoded>
-  </item><item>
-    <title><![CDATA[URI]]></title>
-    <link>https://blog.hangilog.kr/uri</link>
-    <pubDate>2023-01-18</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/uri</guid>
-    <description>
-    <![CDATA[통합 자원 식별자에 대해]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<p><strong>본 문서는 인프런에서 수강할 수 있는 <a href="https://www.inflearn.com/course/http-%EC%9B%B9-%EB%84%A4%ED%8A%B8%EC%9B%8C%ED%81%AC" target="_blank" rel="noopener noreferer">모든 개발자를 위한 HTTP 웹 기본 지식</a>을 수강한 후, 공부한 내용을 정리한 문서입니다. 본 문서의 모든 저작권은 해당 강의의 저자이신 <a href="https://inflearn.com/users/@yh" target="_blank" rel="noopener noreferer">김영한</a> 우아한형제들 기술이사님께 있습니다.</strong></p>
-<h2 id="uri-url-urn" class="heading">URI, URL, URN</h2>
-<h2 id="url-살펴보기" class="heading">URL 살펴보기</h2>]]>
-    </content:encoded>
-  </item><item>
     <title><![CDATA[IoC와 DI]]></title>
     <link>https://blog.hangilog.kr/ioc-di</link>
     <pubDate>2023-01-18</pubDate>
@@ -3058,52 +3633,6 @@ Stateful에서는 이전 요청에 대한 상태를 기억하고 있다. 그런�
 <p>만약, Spring Boot를 통해 개발하면서 View를 그려야할 상황이 생긴다면 Thymeleaf를 공부하고 적극 활용하는게 좋을 것 같습니다. 물론, 성능 자체는 Freemarker와 Velocity가 더 빠르지만 Spring에서도 Thymeleaf를 전폭적으로 지원하고 있다고 합니다.</p>]]>
     </content:encoded>
   </item><item>
-    <title><![CDATA[WAS와 멀티 스레딩]]></title>
-    <link>https://blog.hangilog.kr/multi-thread</link>
-    <pubDate>2023-01-17</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/multi-thread</guid>
-    <description>
-    <![CDATA[동시 요청 처리를 위한 스레드 풀]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<p><strong>본 문서는 인프런에서 수강할 수 있는 <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81-mvc-1/dashboard" target="_blank" rel="noopener noreferer">스프링 MVC 1편 - 백엔드 웹 개발 핵심 기술</a>을 수강한 후, 공부한 내용을 정리한 문서입니다. 본 문서의 모든 저작권은 해당 강의의 저자이신 <a href="https://inflearn.com/users/@yh" target="_blank" rel="noopener noreferer">김영한</a> 우아한형제들 기술이사님께 있습니다.</strong></p>
-<h2 id="thread" class="heading">Thread</h2>
-<h2 id="was와-멀티-스레드" class="heading">WAS와 멀티 스레드</h2>
-<h2 id="마치-싱글-스레드-같이" class="heading">마치 싱글 스레드 같이</h2>
-<h2 id="주의해야할-점" class="heading">주의해야할 점!</h2>]]>
-    </content:encoded>
-  </item><item>
-    <title><![CDATA[Servlet이란?]]></title>
-    <link>https://blog.hangilog.kr/servlet</link>
-    <pubDate>2023-01-17</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/servlet</guid>
-    <description>
-    <![CDATA[Java와 Servlet]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<p><strong>본 문서는 인프런에서 수강할 수 있는 <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81-mvc-1/dashboard" target="_blank" rel="noopener noreferer">스프링 MVC 1편 - 백엔드 웹 개발 핵심 기술</a>을 수강한 후, 공부한 내용을 정리한 문서입니다. 본 문서의 모든 저작권은 해당 강의의 저자이신 <a href="https://inflearn.com/users/@yh" target="_blank" rel="noopener noreferer">김영한</a> 우아한형제들 기술이사님께 있습니다.</strong></p>
-<h2 id="servlet" class="heading">Servlet?</h2>
-<h2 id="복잡하고-낭비되는-작업으로부터의-해방" class="heading">복잡하고 낭비되는 작업으로부터의 해방</h2>
-<h2 id="servlet-컨테이너" class="heading">Servlet 컨테이너</h2>
-<h2 id="싱글톤-패턴" class="heading">싱글톤 패턴</h2>]]>
-    </content:encoded>
-  </item><item>
-    <title><![CDATA[Web 서버와 WAS]]></title>
-    <link>https://blog.hangilog.kr/web-was</link>
-    <pubDate>2023-01-17</pubDate>
-    <guid isPermaLink="false">https://blog.hangilog.kr/web-was</guid>
-    <description>
-    <![CDATA[닮은 듯 다른, 웹 시스템의 두 서버]]>
-    </description>
-    <content:encoded>
-      <![CDATA[<p><strong>본 문서는 인프런에서 수강할 수 있는 <a href="https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81-mvc-1/dashboard" target="_blank" rel="noopener noreferer">스프링 MVC 1편 - 백엔드 웹 개발 핵심 기술</a>을 수강한 후, 공부한 내용을 정리한 문서입니다. 본 문서의 모든 저작권은 해당 강의의 저자이신 <a href="https://inflearn.com/users/@yh" target="_blank" rel="noopener noreferer">김영한</a> 우아한형제들 기술이사님께 있습니다.</strong></p>
-<h2 id="web-server-was" class="heading">Web Server? WAS?</h2>
-<h2 id="web-server" class="heading">Web Server</h2>
-<h2 id="web-application-server" class="heading">Web Application Server</h2>
-<h2 id="둘은-왜-분리되어야-하는가" class="heading">둘은 왜 분리되어야 하는가?</h2>
-<h2 id="was만-있어도-되는-경우" class="heading">WAS만 있어도 되는 경우</h2>]]>
-    </content:encoded>
-  </item><item>
     <title><![CDATA[좋은 객체 지향 프로그래밍]]></title>
     <link>https://blog.hangilog.kr/oop</link>
     <pubDate>2023-01-16</pubDate>
@@ -3114,10 +3643,10 @@ Stateful에서는 이전 요청에 대한 상태를 기억하고 있다. 그런�
     <content:encoded>
       <![CDATA[<p><strong>본 문서는 인프런에서 수강할 수 있는 <a href="https://inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81-%ED%95%B5%EC%8B%AC-%EC%9B%90%EB%A6%AC-%EA%B8%B0%EB%B3%B8%ED%8E%B8" target="_blank" rel="noopener noreferer">스프링 핵심 원리 - 기본편</a>을 수강한 후, 공부한 내용을 정리한 문서입니다. 본 문서의 모든 저작권은 해당 강의의 저자이신 <a href="https://inflearn.com/users/@yh" target="_blank" rel="noopener noreferer">김영한</a> 우아한형제들 기술이사님께 있습니다.</strong></p>
 <h2 id="객체-지향-프로그래밍" class="heading">객체 지향 프로그래밍</h2>
-<p>객체 지향 프로그래밍의 특징으로는 다양한 것들이 있습니다. 클래스 개념으로 대표되는 <strong>캡슐화(Encapsulation)</strong>, 캡슐화에서 파생된 개념인 접근 제어자를 통한 <strong>정보 은닉(Information hiding)</strong>, 부모 클래스의 요소들을 자식 클래스에서 물려받을 수 있는 <strong>상속(Inheritance)</strong>, 프로그램이 유연하고 변경이 용이하게 해주는 **다형성(Polymorphism)**이 객체 지향의 특징들입니다.</p>
+<p>객체 지향 프로그래밍의 특징으로는 다양한 것들이 있습니다. 클래스 개념으로 대표되는 <strong>캡슐화</strong>(Encapsulation), 캡슐화에서 파생된 개념인 접근 제어자를 통한 <strong>정보 은닉</strong>(Information hiding), 부모 클래스의 요소들을 자식 클래스에서 물려받을 수 있는 <strong>상속</strong>(Inheritance), 프로그램이 유연하고 변경이 용이하게 해주는 <strong>다형성</strong>(Polymorphism)이 객체 지향의 특징들입니다.</p>
 <p>그 중에서도 가장 핵심이라고 할 수 있는 특징은 <strong>다형성</strong>입니다. Spring은 이 다형성의 장점을 극대화하여 활용할 수 있게 도와주는 프레임워크입니다. Spring이 다형성을 어떻게 다루는지 알아보기 전에 다형성에 대해서 좀 더 알아보겠습니다.</p>
 <h2 id="다형성이란" class="heading">다형성이란?</h2>
-<p>**다형성(Polymorphism)**을 쉽게 이해하기 위해선 <strong>역할</strong>과 <strong>구현</strong>으로 세상을 구분해보는 것이 가장 좋습니다. 가장 대표적인 예시는 <strong>운전자</strong>와 <strong>자동차</strong>입니다. 운전자와 자동차라는 <strong>역할</strong>은 그 자리에 어떤 구현체(예를 들어 택시 운전사와 아반떼)가 오던 운전자는 자동차를 운전할 수 있습니다. 즉, 구현체와 관계 없이 동작은 한다는 의미입니다. 물론 운전자에 프로 레이싱 선수, 자동차에 슈퍼카라는 구현체가 운전자와 자동차 역할을 담당한다면 훨씬 좋은 성능을 낼 수 있을 것입니다. 여기서 중요한 점은 운전자, 자동차라는 역할과 그 역할을 수행할 구현체는 유연하고 변경이 용이해야한다는 점입니다.</p>
+<p><strong>다형성</strong>(Polymorphism)을 쉽게 이해하기 위해선 <strong>역할</strong>과 <strong>구현</strong>으로 세상을 구분해보는 것이 가장 좋습니다. 가장 대표적인 예시는 <strong>운전자</strong>와 <strong>자동차</strong>입니다. 운전자와 자동차라는 <strong>역할</strong>은 그 자리에 어떤 구현체(예를 들어 택시 운전사와 아반떼)가 오던 운전자는 자동차를 운전할 수 있습니다. 즉, 구현체와 관계 없이 동작은 한다는 의미입니다. 물론 운전자에 프로 레이싱 선수, 자동차에 슈퍼카라는 구현체가 운전자와 자동차 역할을 담당한다면 훨씬 좋은 성능을 낼 수 있을 것입니다. 여기서 중요한 점은 운전자, 자동차라는 역할과 그 역할을 수행할 구현체는 유연하고 변경이 용이해야한다는 점입니다.</p>
 <p>역할과 구현을 분리하는 것이 백엔드 프로그래밍에서 주는 장점은 다음과 같습니다.</p>
 <ul>
 <li>클라이언트는 대상의 역할(인터페이스)만 알고 있으면 된다.</li>
@@ -3127,8 +3656,8 @@ Stateful에서는 이전 요청에 대한 상태를 기억하고 있다. 그런�
 </ul>
 <p>우리가 Spring을 공부하는 중요한 이유 중 하나가 백엔드 프로그래밍 분야에서 가장 강력한 기술을 갖기 위해서임은 부정할 수 없는 사실입니다. 위와 같은 장점들을 통해 우린 클라이언트와 상관없이 독립적으로 유연하고 변경이 용이한 환경에서 개발할 수 있습니다.</p>
 <h2 id="java에서의-다형성" class="heading">Java에서의 다형성</h2>
-<p>Java에서 <strong>역할</strong>은 <strong>인터페이스(Interface)</strong>, <strong>구현</strong>은 인터페이스를 통해 구현한 <strong>구현체</strong>입니다. 우리는 항상 객체를 설계할 때 역할과 구현을 명확하게 분리해야 합니다. <strong>역할을 먼저</strong> 부여하고, 그 역할을 올바르게 수행하는 <strong>구현</strong> 객체를 만들어야합니다. 이 과정이 곧 다형성을 극대화하는 과정이기 때문입니다. Java의 강력한 장점이자 Spring이 탄생한 이유인 <strong>좋은 객체 지향</strong>을 위해서는 필수적입니다.</p>
-<p>객체를 역할과 구현으로 구분하는 과정을 Java에서는 **오버라이딩(Overriding)**이라는 문법을 통해 진행할 수 있습니다. 오버라이딩은 Java의 기본 문법으로 프로그램 실행 시에는 오버라이딩된 메소드가 실행된다는 특징이 있습니다. 쉽게 설명하자면 **"덮어쓰기"**입니다. 이 오버라이딩을 통해 확보한 다형성으로 인터페이스를 구현한 구현체를 실행 시점에서 유연하게 변경할 수 있습니다. 물론 인터페이스 뿐만 아니라 클래스 간의 상속 관계에서도 오버라이딩이 가능하고 다형성이 확보됩니다.</p>
+<p>Java에서 <strong>역할</strong>은 <strong>인터페이스</strong>(Interface), <strong>구현</strong>은 인터페이스를 통해 구현한 <strong>구현체</strong>입니다. 우리는 항상 객체를 설계할 때 역할과 구현을 명확하게 분리해야 합니다. <strong>역할을 먼저</strong> 부여하고, 그 역할을 올바르게 수행하는 <strong>구현</strong> 객체를 만들어야합니다. 이 과정이 곧 다형성을 극대화하는 과정이기 때문입니다. Java의 강력한 장점이자 Spring이 탄생한 이유인 <strong>좋은 객체 지향</strong>을 위해서는 필수적입니다.</p>
+<p>객체를 역할과 구현으로 구분하는 과정을 Java에서는 <strong>오버라이딩</strong>(Overriding)이라는 문법을 통해 진행할 수 있습니다. 오버라이딩은 Java의 기본 문법으로 프로그램 실행 시에는 오버라이딩된 메소드가 실행된다는 특징이 있습니다. 쉽게 설명하자면 **"덮어쓰기"**입니다. 이 오버라이딩을 통해 확보한 다형성으로 인터페이스를 구현한 구현체를 실행 시점에서 유연하게 변경할 수 있습니다. 물론 인터페이스 뿐만 아니라 클래스 간의 상속 관계에서도 오버라이딩이 가능하고 다형성이 확보됩니다.</p>
 <p>코드로 간단하게 Java에서의 다형성을 확인해보면 다음과 같습니다.</p>
 <pre class="language-java"><code class="language-java code-highlight"><span class="code-line"><span class="token comment">//역할</span>
 </span><span class="code-line"><span class="token keyword">interface</span> <span class="token class-name">Car</span> <span class="token punctuation">{</span>
@@ -3201,7 +3730,7 @@ Stateful에서는 이전 요청에 대한 상태를 기억하고 있다. 그런�
 </ul>
 <p>기준이 되는 역할이 바뀌어버리면 구현체도 모두 변경해야하는 치명적인 단점이 존재합니다. 따라서 다형성을 극대화하여 "좋은 객체 지향" 프로그래밍을 하기 위해서는 항상 역할(인터페이스)의 설계에 가장 많은 시간을 들여 변경을 최소화 해야합니다.</p>
 <h2 id="spring과-좋은-객체-지향-프로그래밍" class="heading">Spring과 좋은 객체 지향 프로그래밍</h2>
-<p>Spring에서는 위에서 말했던 다형성을 극대화하는데 집중합니다. Spring의 주요 개념인 <strong>제어의 역전(Inversion of Control)</strong>, **의존관계 주입(Dependency Injection)**은 다형성을 활용해 역활과 구현을 편리하게 다룰 수 있도록 지원합니다. 다시 말하면 다형성이 Spring의 알파이자 오메가, 전부라고 할 수 있습니다! Spring을 사용한다면 마치 레고 블럭을 조립하듯 구현체를 편리하게 변경할 수 있습니다. "좋은 객체 지향"을 목표로 만들어진만큼 프로그래머로 하여금 더 쉽게 객체 지향적 프로그래밍을 할 수 있도록 돕는 것이 Spring의 <strong>역할</strong>입니다.</p>]]>
+<p>Spring에서는 위에서 말했던 다형성을 극대화하는데 집중합니다. Spring의 주요 개념인 <strong>제어의 역전</strong>(Inversion of Control), <strong>의존관계 주입</strong>(Dependency Injection)은 다형성을 활용해 역활과 구현을 편리하게 다룰 수 있도록 지원합니다. 다시 말하면 다형성이 Spring의 알파이자 오메가, 전부라고 할 수 있습니다! Spring을 사용한다면 마치 레고 블럭을 조립하듯 구현체를 편리하게 변경할 수 있습니다. "좋은 객체 지향"을 목표로 만들어진만큼 프로그래머로 하여금 더 쉽게 객체 지향적 프로그래밍을 할 수 있도록 돕는 것이 Spring의 <strong>역할</strong>입니다.</p>]]>
     </content:encoded>
   </item><item>
     <title><![CDATA[Spring이란?]]></title>
