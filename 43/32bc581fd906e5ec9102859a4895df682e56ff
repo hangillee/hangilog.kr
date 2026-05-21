@@ -1,0 +1,21 @@
+apps/blog/src/pages/[slug].page.tsx
+  s_b5cbde01a27e82::t_6bcf455a1aefc3 87-118
+apps/blog/src/libs/markdownToHtml/markdownToHtml.test.tsx
+  s_b5cbde01a27e82::t_af2f043a89265e 87-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "4332bc581fd906e5ec9102859a4895df682e56ff",
+  "prompts": {},
+  "sessions": {
+    "s_b5cbde01a27e82": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e491e-a451-7d20-95e9-78bbfc79b4e1",
+        "model": "gpt-5.5"
+      },
+      "human_author": "reganjoodra <regan@joodra.com>"
+    }
+  }
+}
